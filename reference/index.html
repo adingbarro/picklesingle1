@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Baseline Pickleball Club — Court Booking</title>
+<style>
+  :root{
+    --green-900:#0b3d2e;
+    --green-800:#0f4f3a;
+    --green-700:#146c4a;
+    --green-600:#1a8a5e;
+    --green-500:#22a06b;
+    --green-100:#e3f6ec;
+    --lime:#d4f04a;
+    --ink:#0e1b16;
+    --ink-soft:#5b6a63;
+    --paper:#f6faf7;
+    --card:#ffffff;
+    --line:#e6efe9;
+    --danger:#e2574c;
+    --shadow: 0 10px 30px rgba(11,61,46,0.12);
+    --radius-lg: 22px;
+    --radius-md: 16px;
+    --radius-sm: 10px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:#dfe9e3;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+    padding:20px 0;
+  }
+
+  /* ---------- Phone frame (desktop preview only) ---------- */
+  .device{
+    width:390px;
+    height:844px;
+    background:var(--ink);
+    border-radius:52px;
+    padding:14px;
+    box-shadow:0 30px 60px rgba(0,0,0,0.35);
+    position:relative;
+  }
+  .screen-wrap{
+    width:100%;
+    height:100%;
+    background:var(--paper);
+    border-radius:38px;
+    overflow:hidden;
+    position:relative;
+    display:flex;
+    flex-direction:column;
+  }
+  .notch{
+    position:absolute;
+    top:0; left:50%;
+    transform:translateX(-50%);
+    width:120px; height:28px;
+    background:var(--ink);
+    border-bottom-left-radius:16px;
+    border-bottom-right-radius:16px;
+    z-index:50;
+  }
+  .statusbar{
+    height:46px;
+    flex:0 0 auto;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 26px;
+    font-size:14px;
+    font-weight:600;
+    color:var(--ink);
+  }
+
+  @media (max-width: 430px){
+    body{background:var(--paper); padding:0; display:block;}
+    .device{
+      width:100%; height:100vh; height:100dvh;
+      border-radius:0; padding:0; box-shadow:none;
+    }
+    .screen-wrap{border-radius:0;}
+    .notch{display:none;}
+  }
+
+  /* ---------- App content area ---------- */
+  .app{
+    flex:1 1 auto;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+  }
+  .screens{
+    flex:1 1 auto;
+    min-height:0;
+    position:relative;
+  }
+  .screen{
+    position:absolute;
+    inset:0;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    display:none;
+    flex-direction:column;
+    padding-bottom:20px;
+  }
+  .screen.active{display:flex;}
+  .screen::-webkit-scrollbar{display:none;}
+
+  /* ---------- Reusable ---------- */
+  .px{padding-left:20px;padding-right:20px;}
+  h1,h2,h3,p{margin:0;}
+  .top{
+    padding:6px 20px 16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .brand-row{display:flex;align-items:center;gap:10px;}
+  .logo-mark{
+    width:38px;height:38px;border-radius:11px;
+    background:linear-gradient(135deg,var(--green-500),var(--green-800));
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:800;font-size:16px;
+    flex:0 0 auto;
+  }
+  .top h1{font-size:19px;font-weight:800;color:var(--ink);letter-spacing:-0.3px;}
+  .subtitle{color:var(--ink-soft);font-size:13.5px;margin-top:2px;}
+  .avatar{
+    width:38px;height:38px;border-radius:50%;
+    background:linear-gradient(135deg,var(--green-500),var(--green-700));
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:700;font-size:13px;
+    flex:0 0 auto;
+  }
+  .icon-btn{
+    width:38px;height:38px;border-radius:50%;
+    background:#fff;border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--green-800);
+    flex:0 0 auto;
+    position:relative;
+  }
+  .icon-btn .dot{
+    position:absolute;top:7px;right:7px;
+    width:7px;height:7px;border-radius:50%;
+    background:var(--danger);border:1.5px solid #fff;
+  }
+  .pill-btn{
+    border:none;border-radius:100px;
+    padding:11px 18px;
+    font-weight:700;font-size:14px;
+    background:var(--green-700);color:#fff;
+    display:inline-flex;align-items:center;gap:6px;
+    cursor:pointer;
+  }
+  .pill-btn.secondary{
+    background:var(--green-100);color:var(--green-800);
+  }
+  .pill-btn.block{width:100%;justify-content:center;padding:15px;font-size:15.5px;}
+  .pill-btn:disabled{opacity:0.45;pointer-events:none;}
+  .chip{
+    padding:9px 15px;
+    border-radius:100px;
+    background:#fff;
+    border:1px solid var(--line);
+    font-size:13.5px;
+    font-weight:600;
+    color:var(--ink-soft);
+    white-space:nowrap;
+    flex:0 0 auto;
+  }
+  .chip.active{
+    background:var(--green-800);
+    border-color:var(--green-800);
+    color:#fff;
+  }
+  .card{
+    background:var(--card);
+    border-radius:var(--radius-lg);
+    border:1px solid var(--line);
+  }
+  .scroll-x{
+    display:flex;
+    gap:10px;
+    overflow-x:auto;
+    padding:2px 20px 6px;
+  }
+  .scroll-x::-webkit-scrollbar{display:none;}
+  .section-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    padding:22px 20px 12px;
+  }
+  .section-head h3{font-size:16.5px;font-weight:800;color:var(--ink);}
+  .link{color:var(--green-700);font-size:13px;font-weight:700;}
+  .badge{
+    font-size:11px;font-weight:800;
+    padding:4px 9px;border-radius:100px;
+    letter-spacing:0.2px;
+  }
+  .badge.green{background:var(--green-100);color:var(--green-700);}
+  .badge.lime{background:var(--lime);color:var(--green-900);}
+  .badge.gray{background:#eef2ef;color:var(--ink-soft);}
+  .badge.red{background:#fbdcd9;color:var(--danger);}
+
+  /* ---------- Hero (club banner on Home) ---------- */
+  .club-hero{
+    margin:0 20px 4px;
+    border-radius:var(--radius-lg);
+    background:linear-gradient(150deg,#1a8a5e,#0b3d2e 75%);
+    padding:20px;
+    color:#fff;
+    position:relative;
+    overflow:hidden;
+  }
+  .club-hero::after{
+    content:"";
+    position:absolute;
+    right:-30px; bottom:-40px;
+    width:150px;height:150px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.06);
+  }
+  .club-hero .status-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .club-hero .name{font-size:19px;font-weight:800;letter-spacing:-0.2px;}
+  .club-hero .meta{font-size:12.5px;opacity:0.85;margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .club-hero .stats{display:flex;gap:18px;margin-top:16px;position:relative;}
+  .club-hero .stat b{font-size:15px;display:block;}
+  .club-hero .stat span{font-size:10.5px;opacity:0.75;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;}
+
+  /* ---------- Quick actions ---------- */
+  .quick-actions{
+    display:flex;
+    gap:10px;
+    padding:16px 20px 4px;
+  }
+  .qa-btn{
+    flex:1;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:var(--radius-md);
+    padding:14px 8px;
+    display:flex;flex-direction:column;align-items:center;gap:7px;
+    text-align:center;
+  }
+  .qa-btn .ic{
+    width:38px;height:38px;border-radius:12px;background:var(--green-100);
+    display:flex;align-items:center;justify-content:center;color:var(--green-800);
+  }
+  .qa-btn span{font-size:11.5px;font-weight:700;color:var(--ink);}
+
+  /* ---------- Date strip ---------- */
+  .date-item{
+    flex:0 0 auto;
+    width:52px;
+    padding:10px 0;
+    border-radius:16px;
+    text-align:center;
+    background:#fff;
+    border:1px solid var(--line);
+    color:var(--ink);
+  }
+  .date-item .dow{font-size:11px;color:var(--ink-soft);font-weight:700;text-transform:uppercase;}
+  .date-item .num{font-size:16px;font-weight:800;margin-top:3px;}
+  .date-item.active{background:var(--green-800);border-color:var(--green-800);color:#fff;}
+  .date-item.active .dow{color:#bfe6d3;}
+
+  /* ---------- Court list card ---------- */
+  .court-card{
+    margin:0 20px 12px;
+    padding:14px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    cursor:pointer;
+  }
+  .court-thumb{
+    width:58px;height:58px;border-radius:14px;
+    background-size:cover;background-position:center;
+    flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:800;font-size:18px;
+  }
+  .court-body2{flex:1;min-width:0;}
+  .court-row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+  .court-name{font-size:14.5px;font-weight:800;color:var(--ink);}
+  .court-meta{color:var(--ink-soft);font-size:12px;margin-top:3px;}
+  .court-tags{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+  .court-arrow{color:#c3cbc6;flex:0 0 auto;}
+
+  /* ---------- Bottom nav ---------- */
+  .tabbar{
+    flex:0 0 auto;
+    display:flex;
+    background:#fff;
+    border-top:1px solid var(--line);
+    padding:10px 8px calc(10px + env(safe-area-inset-bottom));
+  }
+  .tab{
+    flex:1;
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+    color:#9aa8a1;
+    font-size:10.5px;
+    font-weight:700;
+    padding:4px 0;
+  }
+  .tab.active{color:var(--green-700);}
+  .tab svg{width:22px;height:22px;}
+
+  /* ---------- Detail screen ---------- */
+  .hero{
+    height:180px;
+    background-size:cover;
+    background-position:center;
+    position:relative;
+    flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .hero .big-num{color:rgba(255,255,255,0.9);font-size:54px;font-weight:800;}
+  .hero .back-btn, .hero .fav-btn{
+    position:absolute;top:16px;
+    width:38px;height:38px;border-radius:50%;
+    background:rgba(255,255,255,0.92);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--ink);
+  }
+  .hero .back-btn{left:18px;}
+  .hero .fav-btn{right:18px;}
+  .sheet{
+    background:var(--paper);
+    border-radius:24px 24px 0 0;
+    margin-top:-22px;
+    position:relative;
+    padding:20px 20px 8px;
+    flex:1;
+  }
+  .detail-title{font-size:21px;font-weight:800;color:var(--ink);letter-spacing:-0.3px;}
+  .detail-meta{display:flex;align-items:center;gap:14px;margin-top:8px;color:var(--ink-soft);font-size:13px;flex-wrap:wrap;}
+  .detail-meta .item{display:flex;align-items:center;gap:5px;}
+  .amenities{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;}
+  .amenity{
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    width:64px;
+  }
+  .amenity .ic{
+    width:46px;height:46px;border-radius:14px;background:var(--green-100);
+    display:flex;align-items:center;justify-content:center;color:var(--green-800);
+  }
+  .amenity span{font-size:10.5px;color:var(--ink-soft);font-weight:600;text-align:center;}
+
+  .slot-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+    padding:0 20px;
+  }
+  .slot{
+    padding:12px 6px;
+    text-align:center;
+    border-radius:14px;
+    border:1px solid var(--line);
+    background:#fff;
+    font-size:13.5px;
+    font-weight:700;
+    color:var(--ink);
+  }
+  .slot .t{display:block;}
+  .slot .p{display:block;font-size:11px;font-weight:600;color:var(--ink-soft);margin-top:3px;}
+  .slot.selected{background:var(--green-800);border-color:var(--green-800);color:#fff;}
+  .slot.selected .p{color:#bfe6d3;}
+  .slot.taken{background:#f1f3f1;color:#c3cbc6;pointer-events:none;}
+  .slot.taken .p{color:#c3cbc6;}
+
+  .duration-row{display:flex;gap:10px;padding:0 20px;}
+  .dur-chip{
+    flex:1;text-align:center;padding:11px 0;
+    border-radius:14px;border:1px solid var(--line);background:#fff;
+    font-size:13.5px;font-weight:700;color:var(--ink);
+  }
+  .dur-chip.active{background:var(--green-800);border-color:var(--green-800);color:#fff;}
+
+  .sticky-bar{
+    flex:0 0 auto;
+    padding:14px 20px calc(14px + env(safe-area-inset-bottom));
+    background:#fff;
+    border-top:1px solid var(--line);
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .sticky-bar .total{flex:1;}
+  .sticky-bar .total .t1{font-size:11.5px;color:var(--ink-soft);font-weight:600;}
+  .sticky-bar .total .t2{font-size:18px;font-weight:800;color:var(--ink);}
+
+  /* ---------- Confirmation ---------- */
+  .confirm-wrap{
+    flex:1;
+    display:flex;flex-direction:column;align-items:center;
+    justify-content:center;text-align:center;
+    padding:0 30px;
+  }
+  .check-circle{
+    width:84px;height:84px;border-radius:50%;
+    background:var(--green-100);
+    display:flex;align-items:center;justify-content:center;
+    margin-bottom:20px;
+  }
+  .check-circle .inner{
+    width:64px;height:64px;border-radius:50%;
+    background:var(--green-700);
+    display:flex;align-items:center;justify-content:center;color:#fff;
+  }
+  .ticket{
+    width:100%;
+    margin-top:22px;
+    text-align:left;
+    padding:18px;
+    position:relative;
+  }
+  .ticket .row{display:flex;justify-content:space-between;padding:8px 0;font-size:13.5px;}
+  .ticket .row span:first-child{color:var(--ink-soft);}
+  .ticket .row span:last-child{font-weight:700;color:var(--ink);}
+  .ticket hr{border:none;border-top:1px dashed var(--line);margin:6px 0;}
+
+  /* ---------- My Bookings ---------- */
+  .booking-card{
+    margin:0 20px 14px;
+    padding:16px;
+    display:flex;
+    gap:14px;
+  }
+  .booking-date{
+    flex:0 0 auto;
+    width:52px;height:52px;
+    border-radius:14px;
+    background:var(--green-800);
+    color:#fff;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+  }
+  .booking-date .mon{font-size:10px;font-weight:700;text-transform:uppercase;color:#bfe6d3;}
+  .booking-date .day{font-size:18px;font-weight:800;line-height:1;}
+  .booking-info{flex:1;min-width:0;}
+  .booking-info .name{font-size:14.5px;font-weight:800;color:var(--ink);}
+  .booking-info .meta{font-size:12px;color:var(--ink-soft);margin-top:4px;}
+  .booking-actions{display:flex;gap:8px;margin-top:12px;}
+  .mini-btn{
+    flex:1;text-align:center;padding:8px 0;border-radius:10px;
+    font-size:12px;font-weight:700;
+    border:1px solid var(--line);color:var(--ink-soft);background:#fff;
+  }
+  .mini-btn.danger{color:var(--danger);border-color:#fbdcd9;}
+
+  /* ---------- Profile ---------- */
+  .profile-head{
+    display:flex;flex-direction:column;align-items:center;
+    padding:20px 20px 22px;
+  }
+  .profile-avatar{
+    width:78px;height:78px;border-radius:50%;
+    background:linear-gradient(135deg,var(--green-500),var(--green-700));
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:800;font-size:26px;
+    margin-bottom:10px;
+  }
+  .stat-row{display:flex;gap:10px;padding:0 20px 8px;}
+  .stat-box{flex:1;padding:14px 10px;text-align:center;}
+  .stat-box .n{font-size:18px;font-weight:800;color:var(--green-800);}
+  .stat-box .l{font-size:11px;color:var(--ink-soft);font-weight:600;margin-top:2px;}
+  .menu-item{
+    display:flex;align-items:center;gap:14px;
+    padding:15px 20px;
+    border-bottom:1px solid var(--line);
+  }
+  .menu-item .ic{
+    width:36px;height:36px;border-radius:10px;background:var(--green-100);color:var(--green-800);
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+  }
+  .menu-item .label{flex:1;font-size:14px;font-weight:700;color:var(--ink);}
+  .menu-item .chev{color:#c3cbc6;}
+
+  /* Toast */
+  .toast{
+    position:absolute;
+    left:20px;right:20px;
+    bottom:100px;
+    background:var(--ink);
+    color:#fff;
+    padding:14px 16px;
+    border-radius:14px;
+    display:flex;align-items:center;gap:10px;
+    font-size:13.5px;font-weight:600;
+    box-shadow:0 10px 24px rgba(0,0,0,0.25);
+    opacity:0;
+    transform:translateY(10px);
+    transition:all .25s ease;
+    pointer-events:none;
+    z-index:80;
+  }
+  .toast.show{opacity:1;transform:translateY(0);}
+  .toast .ic{color:var(--lime);flex:0 0 auto;}
+
+  .announce-card{
+    margin:0 20px 12px;
+    padding:14px;
+    display:flex;
+    gap:12px;
+    align-items:flex-start;
+  }
+  .announce-card .ic{
+    width:36px;height:36px;border-radius:10px;background:var(--lime);
+    display:flex;align-items:center;justify-content:center;color:var(--green-900);
+    flex:0 0 auto;
+  }
+  .announce-card .title{font-size:13.5px;font-weight:800;color:var(--ink);}
+  .announce-card .desc{font-size:12px;color:var(--ink-soft);margin-top:3px;line-height:1.4;}
+</style>
+</head>
+<body>
+
+<div class="device">
+  <div class="notch"></div>
+  <div class="screen-wrap">
+    <div class="statusbar">
+      <span>9:41</span>
+      <span style="display:flex;align-items:center;gap:5px;">
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><rect x="0" y="7" width="3" height="5" rx="0.5" fill="currentColor"/><rect x="4.5" y="5" width="3" height="7" rx="0.5" fill="currentColor"/><rect x="9" y="2.5" width="3" height="9.5" rx="0.5" fill="currentColor"/><rect x="13.5" y="0" width="2.5" height="12" rx="0.5" fill="currentColor"/></svg>
+        <svg width="15" height="11" viewBox="0 0 24 17" fill="none"><path d="M12 17C13.1 17 14 16.1 14 15C14 13.9 13.1 13 12 13C10.9 13 10 13.9 10 15C10 16.1 10.9 17 12 17Z" fill="currentColor"/><path d="M12 4C7.9 4 4.2 5.6 1.5 8.2L3.6 10.3C5.7 8.3 8.7 7 12 7C15.3 7 18.3 8.3 20.4 10.3L22.5 8.2C19.8 5.6 16.1 4 12 4Z" fill="currentColor"/><path d="M6.3 12.3L8.4 14.4C9.4 13.4 10.6 13 12 13C13.4 13 14.6 13.5 15.6 14.4L17.7 12.3C16.1 10.8 14.1 10 12 10C9.9 10 7.9 10.8 6.3 12.3Z" fill="currentColor"/></svg>
+        <svg width="24" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="2.5" stroke="currentColor"/><rect x="2" y="2" width="16" height="8" rx="1.5" fill="currentColor"/><path d="M23 4V8C23.8 7.6 24.3 6.9 24.3 6C24.3 5.1 23.8 4.4 23 4Z" fill="currentColor"/></svg>
+      </span>
+    </div>
+
+    <div class="app">
+      <div class="screens" id="screens">
+
+        <!-- ============ HOME ============ -->
+        <div class="screen active" id="screen-home">
+          <div class="top">
+            <div class="brand-row">
+              <div class="logo-mark">B</div>
+              <div>
+                <h1>Baseline Club</h1>
+                <div class="subtitle" style="margin-top:0;">Hey Jordan 👋</div>
+              </div>
+            </div>
+            <div class="icon-btn"><div class="dot"></div>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+            </div>
+          </div>
+
+          <div class="club-hero">
+            <div class="status-row">
+              <span class="badge lime">Open Now</span>
+              <span style="font-size:12px;opacity:0.9;">until 10:00 PM</span>
+            </div>
+            <div class="name">Baseline Pickleball Club</div>
+            <div class="meta">
+              <span>📍 1420 Maple Ave, Austin, TX</span>
+            </div>
+            <div class="meta">
+              <span>⭐ 4.9 (340 reviews)</span>
+            </div>
+            <div class="stats">
+              <div class="stat"><b>6</b><span>Courts</span></div>
+              <div class="stat"><b>3</b><span>Indoor</span></div>
+              <div class="stat"><b>3</b><span>Outdoor</span></div>
+            </div>
+          </div>
+
+          <div class="quick-actions">
+            <div class="qa-btn" onclick="goTo('screen-book')">
+              <div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></div>
+              <span>Book a Court</span>
+            </div>
+            <div class="qa-btn">
+              <div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+              <span>Open Play</span>
+            </div>
+            <div class="qa-btn">
+              <div class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 3 7l9 5 9-5-9-5z"/><path d="M3 12l9 5 9-5"/></svg></div>
+              <span>Clinics</span>
+            </div>
+          </div>
+
+          <div class="section-head">
+            <h3>Select a date</h3>
+          </div>
+          <div class="scroll-x" id="date-strip"></div>
+
+          <div class="section-head">
+            <h3>Our Courts</h3>
+            <span class="link" onclick="goTo('screen-book')">See all</span>
+          </div>
+          <div id="home-court-list"></div>
+
+          <div class="section-head">
+            <h3>Announcements</h3>
+          </div>
+          <div class="announce-card card">
+            <div class="ic">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+            </div>
+            <div>
+              <div class="title">Court 6 closed for resurfacing</div>
+              <div class="desc">Aug 10–11. All bookings on Court 6 have been moved to Court 5.</div>
+            </div>
+          </div>
+          <div class="announce-card card">
+            <div class="ic">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2 3 7l9 5 9-5-9-5z"/><path d="M3 12l9 5 9-5"/></svg>
+            </div>
+            <div>
+              <div class="title">Fall league sign-ups are open</div>
+              <div class="desc">Mixed doubles league starts Sept 8. Reserve your spot in the app.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ BOOK (full court list) ============ -->
+        <div class="screen" id="screen-book">
+          <div class="top">
+            <h1>Book a Court</h1>
+          </div>
+
+          <div class="scroll-x" id="date-strip-2"></div>
+
+          <div class="scroll-x" style="padding-top:10px;">
+            <div class="chip active" data-filter="all">All Courts</div>
+            <div class="chip" data-filter="indoor">Indoor</div>
+            <div class="chip" data-filter="outdoor">Outdoor</div>
+            <div class="chip" data-filter="available">Available Now</div>
+          </div>
+
+          <div class="section-head"><h3>6 courts</h3></div>
+          <div id="book-court-list"></div>
+        </div>
+
+        <!-- ============ COURT DETAIL / BOOK ============ -->
+        <div class="screen" id="screen-detail">
+          <div class="hero" id="detail-hero" style="background-image:linear-gradient(160deg,#1a8a5e,#0b3d2e);">
+            <div class="back-btn" onclick="goTo('screen-book')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M15 18l-6-6 6-6"/></svg>
+            </div>
+            <div class="fav-btn">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#e2574c" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+            </div>
+            <div class="big-num" id="detail-num">1</div>
+          </div>
+
+          <div class="sheet">
+            <div class="court-row">
+              <div>
+                <div class="detail-title" id="detail-name">Court 1</div>
+                <div class="detail-meta">
+                  <span class="item" id="detail-type">🏠 Indoor</span>
+                  <span class="item" id="detail-price">₱350/hr</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="amenities">
+              <div class="amenity"><div class="ic">💡</div><span>Lighted</span></div>
+              <div class="amenity"><div class="ic">🅿️</div><span>Parking</span></div>
+              <div class="amenity"><div class="ic">🚻</div><span>Restrooms</span></div>
+              <div class="amenity"><div class="ic">🚿</div><span>Showers</span></div>
+            </div>
+
+            <div class="section-head" style="padding-left:0;padding-right:0;">
+              <h3>Select Date</h3>
+            </div>
+            <div class="scroll-x" id="detail-date-strip" style="padding-left:0;padding-right:0;"></div>
+
+            <div class="section-head" style="padding-left:0;padding-right:0;">
+              <h3>Duration</h3>
+            </div>
+            <div class="duration-row" style="padding-left:0;padding-right:0;">
+              <div class="dur-chip" data-dur="60">60 min</div>
+              <div class="dur-chip active" data-dur="90">90 min</div>
+              <div class="dur-chip" data-dur="120">120 min</div>
+            </div>
+
+            <div class="section-head" style="padding-left:0;padding-right:0;">
+              <h3>Available Times</h3>
+              <span class="link" id="detail-count">9 slots</span>
+            </div>
+            <div class="slot-grid" id="slot-grid" style="padding-left:0;padding-right:0;"></div>
+            <div style="height:14px;"></div>
+          </div>
+        </div>
+
+        <!-- ============ CHECKOUT ============ -->
+        <div class="screen" id="screen-checkout">
+          <div class="top" style="padding-top:16px;">
+            <div class="icon-btn" onclick="goTo('screen-detail')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M15 18l-6-6 6-6"/></svg>
+            </div>
+            <h1 style="font-size:17px;">Confirm Booking</h1>
+            <div style="width:38px;"></div>
+          </div>
+
+          <div class="px" style="margin-top:6px;">
+            <div class="card" style="padding:16px;">
+              <div class="court-row">
+                <div>
+                  <div class="court-name" id="co-name">Court 1</div>
+                  <div class="court-meta" style="margin-top:6px;">🗓️ <span id="co-date">Tue, Aug 4</span> · ⏰ <span id="co-time">4:00 PM – 5:30 PM</span></div>
+                  <div class="court-meta" style="margin-top:4px;">📍 Baseline Pickleball Club</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-head"><h3>Players</h3></div>
+          <div class="px">
+            <div class="card" style="padding:6px 14px;display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:14px;font-weight:600;color:var(--ink);">Number of players</span>
+              <div style="display:flex;align-items:center;gap:14px;">
+                <div class="icon-btn" style="width:32px;height:32px;" onclick="stepPlayers(-1)">−</div>
+                <span id="player-count" style="font-weight:800;min-width:14px;text-align:center;">2</span>
+                <div class="icon-btn" style="width:32px;height:32px;" onclick="stepPlayers(1)">+</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-head"><h3>Payment Method</h3></div>
+          <div class="px">
+            <div class="card" style="padding:14px;display:flex;align-items:center;gap:12px;">
+              <div style="width:38px;height:38px;border-radius:10px;background:var(--green-100);display:flex;align-items:center;justify-content:center;">💳</div>
+              <div style="flex:1;">
+                <div style="font-size:14px;font-weight:700;color:var(--ink);">Visa •••• 4821</div>
+                <div style="font-size:12px;color:var(--ink-soft);">Default payment method</div>
+              </div>
+              <span class="link">Change</span>
+            </div>
+          </div>
+
+          <div class="section-head"><h3>Order Summary</h3></div>
+          <div class="px">
+            <div class="card" style="padding:16px;">
+              <div class="ticket" style="padding:0;">
+                <div class="row"><span>Court rental (<span id="sum-dur">90</span> min)</span><span id="sum-court-price">₱525</span></div>
+                <div class="row"><span>Service fee</span><span>₱50</span></div>
+                <hr>
+                <div class="row"><span style="color:var(--ink);font-weight:800;">Total</span><span id="sum-total" style="font-size:15.5px;">₱575</span></div>
+              </div>
+            </div>
+          </div>
+          <div style="height:6px;"></div>
+
+          <div class="sticky-bar">
+            <div class="total">
+              <div class="t1">Total due today</div>
+              <div class="t2" id="bar-total">₱575</div>
+            </div>
+            <button class="pill-btn" onclick="confirmBooking()">Book Now</button>
+          </div>
+        </div>
+
+        <!-- ============ CONFIRMATION ============ -->
+        <div class="screen" id="screen-confirmation">
+          <div class="confirm-wrap">
+            <div class="check-circle">
+              <div class="inner">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+              </div>
+            </div>
+            <h1 style="font-size:21px;">Booking Confirmed!</h1>
+            <p class="subtitle" style="margin-top:8px;">Your court is reserved. See you on the baseline 🏓</p>
+
+            <div class="card ticket">
+              <div class="row"><span>Court</span><span id="tk-name">Court 1</span></div>
+              <div class="row"><span>Date</span><span id="tk-date">Tue, Aug 4</span></div>
+              <div class="row"><span>Time</span><span id="tk-time">4:00 – 5:30 PM</span></div>
+              <hr>
+              <div class="row"><span>Confirmation #</span><span id="tk-conf">PB-48213</span></div>
+              <div class="row"><span>Amount paid</span><span id="tk-paid">₱575</span></div>
+            </div>
+
+            <div style="display:flex;gap:10px;width:100%;margin-top:24px;">
+              <button class="pill-btn secondary" style="flex:1;justify-content:center;" onclick="goTo('screen-home')">Done</button>
+              <button class="pill-btn" style="flex:1;justify-content:center;" onclick="goTo('screen-bookings')">View Booking</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ MY BOOKINGS ============ -->
+        <div class="screen" id="screen-bookings">
+          <div class="top">
+            <h1>My Bookings</h1>
+          </div>
+          <div class="scroll-x">
+            <div class="chip active">Upcoming</div>
+            <div class="chip">Past</div>
+            <div class="chip">Cancelled</div>
+          </div>
+          <div style="height:16px;"></div>
+
+          <div class="booking-card card">
+            <div class="booking-date"><div class="mon">Aug</div><div class="day">4</div></div>
+            <div class="booking-info">
+              <div class="court-row">
+                <div class="name">Court 3 · Indoor</div>
+                <span class="badge lime">Confirmed</span>
+              </div>
+              <div class="meta">4:00 PM – 5:30 PM · 2 players</div>
+              <div class="booking-actions">
+                <div class="mini-btn">Reschedule</div>
+                <div class="mini-btn danger">Cancel</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="booking-card card">
+            <div class="booking-date"><div class="mon">Aug</div><div class="day">9</div></div>
+            <div class="booking-info">
+              <div class="court-row">
+                <div class="name">Court 5 · Outdoor</div>
+                <span class="badge lime">Confirmed</span>
+              </div>
+              <div class="meta">6:30 PM – 8:00 PM · 4 players</div>
+              <div class="booking-actions">
+                <div class="mini-btn">Reschedule</div>
+                <div class="mini-btn danger">Cancel</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="booking-card card">
+            <div class="booking-date"><div class="mon">Aug</div><div class="day">14</div></div>
+            <div class="booking-info">
+              <div class="court-row">
+                <div class="name">Court 2 · Indoor</div>
+                <span class="badge gray">Pending</span>
+              </div>
+              <div class="meta">9:00 AM – 10:00 AM · 2 players</div>
+              <div class="booking-actions">
+                <div class="mini-btn">Reschedule</div>
+                <div class="mini-btn danger">Cancel</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ PROFILE ============ -->
+        <div class="screen" id="screen-profile">
+          <div class="top"><h1>Profile</h1></div>
+          <div class="profile-head">
+            <div class="profile-avatar">JD</div>
+            <h3 style="font-size:17px;font-weight:800;">Jordan Diaz</h3>
+            <p class="subtitle">jordan.diaz@email.com</p>
+          </div>
+
+          <div class="stat-row">
+            <div class="stat-box card"><div class="n">27</div><div class="l">Games Played</div></div>
+            <div class="stat-box card"><div class="n">4.2</div><div class="l">Skill Rating</div></div>
+            <div class="stat-box card"><div class="n">3</div><div class="l">Upcoming</div></div>
+          </div>
+
+          <div style="height:14px;"></div>
+          <div class="card" style="margin:0 20px;overflow:hidden;">
+            <div class="menu-item">
+              <div class="ic">🗓️</div><div class="label">My Bookings</div>
+              <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+            <div class="menu-item">
+              <div class="ic">💳</div><div class="label">Payment Methods</div>
+              <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+            <div class="menu-item">
+              <div class="ic">🏓</div><div class="label">Skill Level & DUPR</div>
+              <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+            <div class="menu-item">
+              <div class="ic">🔔</div><div class="label">Notifications</div>
+              <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+            <div class="menu-item" style="border-bottom:none;">
+              <div class="ic">⚙️</div><div class="label">Settings</div>
+              <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="toast" id="toast">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+          <span id="toast-text">Booking cancelled</span>
+        </div>
+
+      </div>
+
+      <div class="tabbar" id="tabbar">
+        <div class="tab active" data-tab="screen-home" onclick="goTo('screen-home')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+          Home
+        </div>
+        <div class="tab" data-tab="screen-book" onclick="goTo('screen-book')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+          Book
+        </div>
+        <div class="tab" data-tab="screen-bookings" onclick="goTo('screen-bookings')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          Bookings
+        </div>
+        <div class="tab" data-tab="screen-profile" onclick="goTo('screen-profile')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4.5 5-6 8-6s6.5 1.5 8 6"/></svg>
+          Profile
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  var courts = [
+    {id:1, type:'Indoor', lighted:false, price:350, gradient:'linear-gradient(160deg,#1a8a5e,#0b3d2e)', available:true},
+    {id:2, type:'Indoor', lighted:false, price:350, gradient:'linear-gradient(160deg,#1a8a5e,#0b3d2e)', available:true},
+    {id:3, type:'Indoor', lighted:false, price:350, gradient:'linear-gradient(160deg,#1a8a5e,#0b3d2e)', available:false},
+    {id:4, type:'Outdoor', lighted:true, price:250, gradient:'linear-gradient(160deg,#3ab07a,#146c4a)', available:true},
+    {id:5, type:'Outdoor', lighted:true, price:250, gradient:'linear-gradient(160deg,#3ab07a,#146c4a)', available:true},
+    {id:6, type:'Outdoor', lighted:false, price:250, gradient:'linear-gradient(160deg,#3ab07a,#146c4a)', available:false}
+  ];
+
+  var state = {
+    court: 1,
+    dur: 90,
+    slot: null,
+    players: 2,
+    dateLabel: '',
+    tabScreens: ['screen-home','screen-book','screen-bookings','screen-profile']
+  };
+
+  function courtById(id){
+    for(var i=0;i<courts.length;i++) if(courts[i].id===id) return courts[i];
+    return courts[0];
+  }
+
+  function renderCourtCard(c, forHome){
+    var el = document.createElement('div');
+    el.className = 'court-card card';
+    var typeIcon = c.type==='Indoor' ? '🏠' : '☀️';
+    var statusBadge = c.available
+      ? '<span class="badge lime">Available</span>'
+      : '<span class="badge gray">Booked until 6pm</span>';
+    el.innerHTML =
+      '<div class="court-thumb" style="background-image:'+c.gradient+';">#'+c.id+'</div>'+
+      '<div class="court-body2">'+
+        '<div class="court-row">'+
+          '<div>'+
+            '<div class="court-name">Court '+c.id+'</div>'+
+            '<div class="court-meta">'+typeIcon+' '+c.type+' · ₱'+c.price+'/hr</div>'+
+          '</div>'+
+        '</div>'+
+        '<div class="court-tags">'+statusBadge+(c.lighted?'<span class="badge green">Lighted</span>':'')+'</div>'+
+      '</div>'+
+      '<div class="court-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></div>';
+    el.onclick = function(){ openCourt(c.id); };
+    return el;
+  }
+
+  function renderCourtLists(){
+    var homeList = document.getElementById('home-court-list');
+    homeList.innerHTML = '';
+    courts.slice(0,4).forEach(function(c){ homeList.appendChild(renderCourtCard(c, true)); });
+
+    refreshBookList('all');
+  }
+
+  function refreshBookList(filter){
+    var bookList = document.getElementById('book-court-list');
+    bookList.innerHTML = '';
+    var filtered = courts.filter(function(c){
+      if(filter==='indoor') return c.type==='Indoor';
+      if(filter==='outdoor') return c.type==='Outdoor';
+      if(filter==='available') return c.available;
+      return true;
+    });
+    filtered.forEach(function(c){ bookList.appendChild(renderCourtCard(c, false)); });
+  }
+
+  document.querySelectorAll('#screen-book .chip').forEach(function(chip){
+    chip.addEventListener('click', function(){
+      document.querySelectorAll('#screen-book .chip').forEach(function(c){ c.classList.remove('active'); });
+      this.classList.add('active');
+      refreshBookList(this.getAttribute('data-filter'));
+    });
+  });
+
+  renderCourtLists();
+
+  function buildDateStrip(containerId, activeIndex){
+    var el = document.getElementById(containerId);
+    el.innerHTML = '';
+    var days = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+    var today = new Date(2026,7,4); // Aug 4 2026
+    for(var i=0;i<10;i++){
+      var d = new Date(today);
+      d.setDate(today.getDate()+i);
+      var item = document.createElement('div');
+      item.className = 'date-item' + (i===activeIndex?' active':'');
+      item.innerHTML = '<div class="dow">'+days[d.getDay()]+'</div><div class="num">'+d.getDate()+'</div>';
+      item.onclick = (function(el2, d2){
+        return function(){
+          var siblings = el2.parentElement.children;
+          for(var j=0;j<siblings.length;j++) siblings[j].classList.remove('active');
+          el2.classList.add('active');
+          state.dateLabel = d2;
+        };
+      })(item, formatDate(d));
+      if(i===activeIndex) state.dateLabel = formatDate(d);
+      el.appendChild(item);
+    }
+  }
+
+  function formatDate(d){
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    return days[d.getDay()]+', '+months[d.getMonth()]+' '+d.getDate();
+  }
+
+  buildDateStrip('date-strip', 0);
+  buildDateStrip('date-strip-2', 0);
+  buildDateStrip('detail-date-strip', 0);
+
+  function goTo(id){
+    var screens = document.querySelectorAll('.screen');
+    for(var i=0;i<screens.length;i++) screens[i].classList.remove('active');
+    document.getElementById(id).classList.add('active');
+    document.getElementById(id).scrollTop = 0;
+
+    var tabs = document.querySelectorAll('.tab');
+    var isTabScreen = state.tabScreens.indexOf(id) !== -1;
+    document.getElementById('tabbar').style.display = isTabScreen ? 'flex' : 'none';
+    for(var j=0;j<tabs.length;j++){
+      tabs[j].classList.toggle('active', tabs[j].getAttribute('data-tab')===id);
+    }
+  }
+
+  function openCourt(id){
+    state.court = id;
+    var c = courtById(id);
+    document.getElementById('detail-hero').style.backgroundImage = c.gradient;
+    document.getElementById('detail-num').textContent = c.id;
+    document.getElementById('detail-name').textContent = 'Court ' + c.id;
+    document.getElementById('detail-type').textContent = (c.type==='Indoor'?'🏠 ':'☀️ ') + c.type;
+    document.getElementById('detail-price').textContent = '₱'+c.price+'/hr';
+    buildSlots();
+    goTo('screen-detail');
+  }
+
+  var durationEls = document.querySelectorAll('.dur-chip');
+  durationEls.forEach(function(el){
+    el.addEventListener('click', function(){
+      durationEls.forEach(function(e){ e.classList.remove('active'); });
+      this.classList.add('active');
+      state.dur = parseInt(this.getAttribute('data-dur'));
+      buildSlots();
+    });
+  });
+
+  var baseSlots = [
+    {t:'7:00 AM', taken:false},{t:'8:00 AM', taken:true},{t:'9:00 AM', taken:false},
+    {t:'10:00 AM', taken:false},{t:'11:00 AM', taken:true},{t:'1:00 PM', taken:false},
+    {t:'2:30 PM', taken:false},{t:'4:00 PM', taken:false},{t:'5:30 PM', taken:true},
+    {t:'7:00 PM', taken:false},{t:'8:00 PM', taken:false},{t:'9:00 PM', taken:true}
+  ];
+
+  function buildSlots(){
+    var grid = document.getElementById('slot-grid');
+    grid.innerHTML = '';
+    var c = courtById(state.court);
+    var priceForSlot = Math.round(c.price * (state.dur/60));
+    var available = 0;
+    baseSlots.forEach(function(s, idx){
+      var el = document.createElement('div');
+      el.className = 'slot' + (s.taken ? ' taken' : '');
+      el.innerHTML = '<span class="t">'+s.t+'</span><span class="p">₱'+priceForSlot+'</span>';
+      if(!s.taken){
+        available++;
+        el.onclick = function(){
+          var all = grid.querySelectorAll('.slot');
+          all.forEach(function(x){ x.classList.remove('selected'); });
+          this.classList.add('selected');
+          state.slot = this.querySelector('.t').textContent;
+        };
+      }
+      grid.appendChild(el);
+    });
+    document.getElementById('detail-count').textContent = available + ' slots';
+    state.slot = null;
+    document.getElementById('detail-selected').textContent = 'Choose a time';
+    document.getElementById('detail-book-btn').disabled = true;
+  }
+
+  (function(){
+    var sheet = document.querySelector('#screen-detail .sheet');
+    var bar = document.createElement('div');
+    bar.className = 'sticky-bar';
+    bar.style.margin = '10px -20px -8px';
+    bar.innerHTML = '<div class="total"><div class="t1">Selected</div><div class="t2" id="detail-selected">Choose a time</div></div><button class="pill-btn" id="detail-book-btn" disabled>Continue</button>';
+    sheet.appendChild(bar);
+
+    document.getElementById('screen-detail').addEventListener('click', function(e){
+      if(e.target.closest('.slot') && !e.target.closest('.slot').classList.contains('taken')){
+        state.slot = e.target.closest('.slot').querySelector('.t').textContent;
+        document.getElementById('detail-selected').textContent = state.slot + ' · ' + state.dur + ' min';
+        document.getElementById('detail-book-btn').disabled = false;
+      }
+    });
+
+    document.getElementById('detail-book-btn').addEventListener('click', function(){
+      if(!state.slot) return;
+      prepareCheckout();
+      goTo('screen-checkout');
+    });
+  })();
+
+  buildSlots();
+
+  function addMinutes(timeStr, mins){
+    var m = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    var h = parseInt(m[1])%12;
+    if(/pm/i.test(m[3])) h += 12;
+    var min = parseInt(m[2]);
+    var date = new Date(2000,0,1,h,min);
+    date.setMinutes(date.getMinutes()+mins);
+    var hh = date.getHours();
+    var ampm = hh>=12 ? 'PM' : 'AM';
+    var h12 = hh%12; if(h12===0) h12=12;
+    var mm = date.getMinutes();
+    return h12+':'+(mm<10?'0':'')+mm+' '+ampm;
+  }
+
+  function prepareCheckout(){
+    var c = courtById(state.court);
+    var endTime = addMinutes(state.slot, state.dur);
+    var courtPrice = Math.round(c.price * (state.dur/60));
+    var fee = 50;
+    var total = courtPrice + fee;
+
+    document.getElementById('co-name').textContent = 'Court ' + c.id + ' · ' + c.type;
+    document.getElementById('co-date').textContent = state.dateLabel || 'Tue, Aug 4';
+    document.getElementById('co-time').textContent = state.slot + ' – ' + endTime;
+    document.getElementById('sum-dur').textContent = state.dur;
+    document.getElementById('sum-court-price').textContent = '₱'+courtPrice.toLocaleString('en-PH');
+    document.getElementById('sum-total').textContent = '₱'+total.toLocaleString('en-PH');
+    document.getElementById('bar-total').textContent = '₱'+total.toLocaleString('en-PH');
+    document.getElementById('player-count').textContent = state.players;
+
+    window._checkoutCache = {
+      name: 'Court ' + c.id + ' · ' + c.type,
+      date: state.dateLabel || 'Tue, Aug 4',
+      time: state.slot + ' – ' + endTime,
+      total: '₱'+total.toLocaleString('en-PH')
+    };
+  }
+
+  function stepPlayers(delta){
+    state.players = Math.max(2, Math.min(4, state.players + delta));
+    document.getElementById('player-count').textContent = state.players;
+  }
+
+  function confirmBooking(){
+    var d = window._checkoutCache;
+    document.getElementById('tk-name').textContent = d.name;
+    document.getElementById('tk-date').textContent = d.date;
+    document.getElementById('tk-time').textContent = d.time;
+    document.getElementById('tk-conf').textContent = 'PB-' + Math.floor(10000+Math.random()*89999);
+    document.getElementById('tk-paid').textContent = d.total;
+    goTo('screen-confirmation');
+  }
+
+  function showToast(msg){
+    var t = document.getElementById('toast');
+    document.getElementById('toast-text').textContent = msg;
+    t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 2200);
+  }
+
+  document.querySelectorAll('.mini-btn.danger').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var card = this.closest('.booking-card');
+      card.style.transition = 'opacity .25s, transform .25s';
+      card.style.opacity = '0';
+      card.style.transform = 'scale(0.96)';
+      setTimeout(function(){ card.remove(); }, 250);
+      showToast('Booking cancelled');
+    });
+  });
+
+  document.querySelectorAll('.mini-btn:not(.danger)').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      showToast('Reschedule request sent');
+    });
+  });
+
+  document.querySelectorAll('#screen-bookings .scroll-x .chip').forEach(function(chip){
+    chip.addEventListener('click', function(){
+      var siblings = this.parentElement.querySelectorAll('.chip');
+      siblings.forEach(function(s){ s.classList.remove('active'); });
+      this.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

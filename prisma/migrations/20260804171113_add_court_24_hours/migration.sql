@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Court" ADD COLUMN "is24Hours" BOOLEAN NOT NULL DEFAULT false;

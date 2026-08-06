@@ -1,0 +1,96 @@
+// Prisma schema for the pickleball court booking system.
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum CourtType {
+  INDOOR
+  OUTDOOR
+}
+
+enum CourtStatus {
+  ACTIVE
+  MAINTENANCE
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+// Singleton row (id is always 1) holding club-wide branding & defaults.
+model Settings {
+  id           Int      @id @default(1)
+  companyName  String   @default("Baseline Pickleball Club")
+  tagline      String?
+  address      String?
+  phone        String?
+  email        String?
+  logoDataUrl  String?  @db.Text
+  defaultOpen  String   @default("06:00")
+  defaultClose String   @default("22:00")
+  updatedAt    DateTime @updatedAt
+}
+
+model Facility {
+  id        String  @id @default(cuid())
+  key       String  @unique
+  label     String
+  icon      String  @default("⭐")
+  enabled   Boolean @default(true)
+  sortOrder Int     @default(0)
+}
+
+model Court {
+  id           String      @id @default(cuid())
+  name         String
+  type         CourtType   @default(INDOOR)
+  lighted      Boolean     @default(false)
+  pricePerHour Int
+  is24Hours    Boolean     @default(false)
+  opensAt      String      @default("06:00")
+  closesAt     String      @default("22:00")
+  status       CourtStatus @default(ACTIVE)
+  sortOrder    Int         @default(0)
+  createdAt    DateTime    @default(now())
+  bookings     Booking[]
+}
+
+model Customer {
+  id        String    @id @default(cuid())
+  name      String
+  email     String?   @unique
+  phone     String?
+  createdAt DateTime  @default(now())
+  bookings  Booking[]
+}
+
+model Booking {
+  id               String        @id @default(cuid())
+  court            Court         @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  courtId          String
+  customer         Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId       String
+  date             DateTime      @db.Date
+  startTime        String
+  endTime          String
+  durationMin      Int
+  players          Int           @default(2)
+  courtPrice       Int
+  serviceFee       Int
+  totalPrice       Int
+  status           BookingStatus @default(CONFIRMED)
+  confirmationCode String        @unique
+  createdAt        DateTime      @default(now())
+
+  @@unique([courtId, date, startTime])
+  @@index([customerId])
+  @@index([date])
+}
