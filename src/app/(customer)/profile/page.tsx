@@ -1,18 +1,15 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getDemoCustomer } from "@/lib/customer";
-import { CUSTOMER_SESSION_COOKIE, readCustomerSessionEmail } from "@/lib/customerAuth";
+import { getCurrentCustomerEmail, getOrCreateCustomerByEmail } from "@/lib/customer";
 import { todayManilaDateKey } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProfilePage() {
-  const cookieStore = await cookies();
-  const isLoggedIn = readCustomerSessionEmail(cookieStore.get(CUSTOMER_SESSION_COOKIE)?.value) !== null;
-  if (!isLoggedIn) redirect("/login?next=/profile");
+  const email = await getCurrentCustomerEmail();
+  if (!email) redirect("/login?next=/profile");
 
-  const customer = await getDemoCustomer();
+  const customer = await getOrCreateCustomerByEmail(email);
   const bookings = await prisma.booking.findMany({ where: { customerId: customer.id } });
   const today = todayManilaDateKey();
 

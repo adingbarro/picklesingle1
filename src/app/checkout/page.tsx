@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatDateLabel, timeLabel, addMinutesToTime } from "@/lib/format";
-import { CUSTOMER_SESSION_COOKIE, readCustomerSessionEmail } from "@/lib/customerAuth";
+import { getCurrentCustomerEmail } from "@/lib/customer";
 import CheckoutForm from "@/components/CheckoutForm";
 
 export const dynamic = "force-dynamic";
@@ -26,8 +25,7 @@ export default async function CheckoutPage({
   const courtPrice = Math.round((court.pricePerHour * duration) / 60);
   const serviceFee = 50;
 
-  const cookieStore = await cookies();
-  const isLoggedIn = readCustomerSessionEmail(cookieStore.get(CUSTOMER_SESSION_COOKIE)?.value) !== null;
+  const isLoggedIn = (await getCurrentCustomerEmail()) !== null;
 
   return (
     <div className="app-shell" style={{ paddingBottom: 0 }}>

@@ -1,15 +1,14 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { isOpenNow, timeToMinutes } from "@/lib/format";
-import { CUSTOMER_SESSION_COOKIE, readCustomerSessionEmail } from "@/lib/customerAuth";
+import { getCurrentCustomerEmail, getOrCreateCustomerByEmail } from "@/lib/customer";
 import HomeDateAndCourts from "@/components/HomeDateAndCourts";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const cookieStore = await cookies();
-  const isLoggedIn = readCustomerSessionEmail(cookieStore.get(CUSTOMER_SESSION_COOKIE)?.value) !== null;
+  const email = await getCurrentCustomerEmail();
+  const customer = email ? await getOrCreateCustomerByEmail(email) : null;
 
   const [settings, allCourts, facilities] = await Promise.all([
     prisma.settings.findUnique({ where: { id: 1 } }),
@@ -44,9 +43,9 @@ export default async function HomePage() {
           </div>
           <div>
             <h1>{companyName}</h1>
-            {isLoggedIn && (
+            {customer && (
               <div className="subtitle" style={{ marginTop: 0 }}>
-                Hey Jordan 👋
+                Hey {customer.name.split(" ")[0]} 👋
               </div>
             )}
           </div>

@@ -1,7 +1,9 @@
 "use client";
 
 import { useActionState, useEffect, useState, useTransition } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { createBooking, loginCustomer, type LoginState } from "@/app/checkout/actions";
+import { signInWithGoogle } from "@/lib/authActions";
 import { peso } from "@/lib/format";
 
 const initialLoginState: LoginState = { error: null };
@@ -29,6 +31,9 @@ export default function CheckoutForm({
   const [showLogin, setShowLogin] = useState(false);
   const [loginState, loginAction, loginPending] = useActionState(loginCustomer, initialLoginState);
   const total = courtPrice + serviceFee;
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentUrl = `${pathname}?${searchParams.toString()}`;
 
   function submitBooking() {
     setError(null);
@@ -184,6 +189,16 @@ export default function CheckoutForm({
                   {loginPending ? "Signing in…" : "Sign In"}
                 </button>
               </div>
+            </form>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "14px 0" }}>
+              <hr style={{ flex: 1, border: "none", borderTop: "1px solid var(--line)" }} />
+              <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>or</span>
+              <hr style={{ flex: 1, border: "none", borderTop: "1px solid var(--line)" }} />
+            </div>
+            <form action={signInWithGoogle.bind(null, currentUrl)}>
+              <button type="submit" className="pill-btn secondary block">
+                Continue with Google
+              </button>
             </form>
           </div>
         </div>

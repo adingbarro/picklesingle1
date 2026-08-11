@@ -90,9 +90,12 @@ Useful scripts: `npm run db:studio` opens Prisma Studio (a GUI to browse/edit th
 
 ### Environment variables on Railway
 
-| Variable       | Required | Notes                                                            |
-| -------------- | -------- | ----------------------------------------------------------------- |
-| `DATABASE_URL` | Yes      | Auto-injected by Railway's Postgres plugin — no action needed.    |
+| Variable              | Required | Notes                                                                   |
+| --------------------- | -------- | ------------------------------------------------------------------------ |
+| `DATABASE_URL`        | Yes      | Auto-injected by Railway's Postgres plugin — no action needed.           |
+| `GOOGLE_CLIENT_ID`     | For Google sign-in | From an OAuth 2.0 Client ID at [Google Cloud Console](https://console.cloud.google.com/apis/credentials). |
+| `GOOGLE_CLIENT_SECRET` | For Google sign-in | Same OAuth client as above. Add `https://<your-railway-domain>/api/auth/callback/google` as an authorized redirect URI. |
+| `AUTH_SECRET`          | For Google sign-in | Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. |
 
 ## What's still a placeholder
 

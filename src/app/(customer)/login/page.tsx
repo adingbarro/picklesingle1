@@ -3,6 +3,7 @@
 import { useActionState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { loginCustomer, type LoginState } from "@/app/checkout/actions";
+import { signInWithGoogle } from "@/lib/authActions";
 
 const initialState: LoginState = { error: null };
 
@@ -44,6 +45,16 @@ export default function CustomerLoginPage() {
             {state.error && <p className="login-error">{state.error}</p>}
             <button type="submit" className="pill-btn block" disabled={pending}>
               {pending ? "Signing in…" : "Sign In"}
+            </button>
+          </form>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "16px 0" }}>
+            <hr style={{ flex: 1, border: "none", borderTop: "1px solid var(--line)" }} />
+            <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>or</span>
+            <hr style={{ flex: 1, border: "none", borderTop: "1px solid var(--line)" }} />
+          </div>
+          <form action={signInWithGoogle.bind(null, next)}>
+            <button type="submit" className="pill-btn secondary block">
+              Continue with Google
             </button>
           </form>
         </div>

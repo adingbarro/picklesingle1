@@ -1,16 +1,18 @@
+import { cookies } from "next/headers";
 import { prisma } from "./prisma";
+import { auth } from "./auth";
+import { CUSTOMER_SESSION_COOKIE, readCustomerSessionEmail } from "./customerAuth";
 
-// This app ships without authentication. Every booking is attached to a single
-// demo customer so the flow is fully functional end-to-end; swap this for real
-// auth (NextAuth, Clerk, etc.) before taking multi-user traffic in production.
-const DEMO_EMAIL = "jordan.diaz@email.com";
+// Session state can come from either login path: a Google sign-in (Auth.js
+// JWT cookie) or the hardcoded email/password login (customer_session
+// cookie). Callers that just need "who's logged in" should use this instead
+// of reading either cookie directly.
+export async function getCurrentCustomerEmail(): Promise<string | null> {
+  const session = await auth();
+  if (session?.user?.email) return session.user.email;
 
-export async function getDemoCustomer() {
-  return prisma.customer.upsert({
-    where: { email: DEMO_EMAIL },
-    update: {},
-    create: { name: "Jordan Diaz", email: DEMO_EMAIL },
-  });
+  const cookieStore = await cookies();
+  return readCustomerSessionEmail(cookieStore.get(CUSTOMER_SESSION_COOKIE)?.value);
 }
 
 export async function getOrCreateCustomerByEmail(email: string) {

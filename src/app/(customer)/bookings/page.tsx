@@ -1,5 +1,6 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getDemoCustomer } from "@/lib/customer";
+import { getCurrentCustomerEmail, getOrCreateCustomerByEmail } from "@/lib/customer";
 import { todayManilaDateKey } from "@/lib/format";
 import BookingsList, { type BookingRow } from "@/components/BookingsList";
 
@@ -8,7 +9,10 @@ export const dynamic = "force-dynamic";
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export default async function BookingsPage() {
-  const customer = await getDemoCustomer();
+  const email = await getCurrentCustomerEmail();
+  if (!email) redirect("/login?next=/bookings");
+
+  const customer = await getOrCreateCustomerByEmail(email);
   const bookings = await prisma.booking.findMany({
     where: { customerId: customer.id },
     include: { court: true },

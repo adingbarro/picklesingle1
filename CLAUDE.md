@@ -20,12 +20,12 @@ only — they are not wired to anything and should not be edited to "fix" the ap
   into `schema.prisma` — it's a hard validation error in this Prisma version.
 - **Money is in Philippine pesos (₱), stored as whole-number integers** (no cents). Use
   `peso()` from `src/lib/format.ts` for display.
-- **Auth is a single hardcoded admin + single hardcoded customer, not a real user system.**
-  Credentials live in env vars (`ADMIN_EMAIL`/`ADMIN_PASSWORD`, `CUSTOMER_EMAIL`/`CUSTOMER_PASSWORD`),
-  checked in `src/lib/adminAuth.ts` / `src/lib/customerAuth.ts`, backed by an HMAC-signed session
-  cookie (`ADMIN_SESSION_SECRET` / `CUSTOMER_SESSION_SECRET` — also required, or those libs
-  throw). No bcrypt, no users table, no sign-up — this is a gate, not a real auth system. Don't
-  build toward multi-user assumptions without being asked.
+- **Admin auth is a single hardcoded admin; customer auth is a hardcoded email/password login
+  plus real Google sign-in, both feeding the same `Customer` table — still not a real
+  multi-provider user system (no bcrypt, no users table, no sign-up).** Admin credentials live
+  in `ADMIN_EMAIL`/`ADMIN_PASSWORD`, checked in `src/lib/adminAuth.ts`, backed by an HMAC-signed
+  session cookie (`ADMIN_SESSION_SECRET` — required, or the lib throws). Don't build toward
+  multi-user assumptions on the admin side without being asked.
   - **Admin** (`/admin/*`): a full login page at `src/app/admin/login/`, enforced by
     `src/proxy.ts` (Next 16's middleware replacement) — anything under `/admin/*` except
     `/admin/login` redirects there without a valid session. The real admin pages live under
@@ -33,16 +33,23 @@ only — they are not wired to anything and should not be edited to "fix" the ap
     doesn't render inside the sidebar layout.
   - **Customer** (`/`, `/book`, etc.): browsing is never gated. Login is enforced only at the
     point of an actual transaction — clicking "Book Now" in `/checkout` opens an inline login
-    dialog (`src/components/CheckoutForm.tsx`) rather than redirecting away, and the booking
-    continues automatically on success. `/profile` is the one page that hard-redirects to
-    `src/app/(customer)/login/` (a full page, for direct nav) when logged out; `TabBar` swaps
-    its 4th tab between "Profile" and "Login" based on session state. Follow this same
-    soft-gate-at-the-action pattern for any new protected customer action — don't wall off
-    browsing.
-  - Once logged in, a booking attaches to a real `Customer` row looked up/created from the
-    session email (`getOrCreateCustomerByEmail` in `src/lib/customer.ts`) — **not** the old demo
-    customer. `getDemoCustomer()` ("Jordan Diaz") still exists and still backs the home-page
-    greeting and `/profile` display content; the two customer identities aren't unified.
+    dialog (`src/components/CheckoutForm.tsx`) with both the password form and a "Continue with
+    Google" button, rather than redirecting away; the booking continues automatically on
+    success for the password path (Google's OAuth redirect breaks that auto-continue trick, so
+    the user just clicks "Book Now" once more after landing back on `/checkout`). `/profile` and
+    `/bookings` hard-redirect to `src/app/(customer)/login/` (a full page, for direct nav) when
+    logged out; `TabBar` swaps its 4th tab between "Profile" and "Login" based on session state.
+    Follow this same soft-gate-at-the-action pattern for any new protected customer action —
+    don't wall off browsing.
+  - Two login paths, one session check: the password login sets the HMAC-signed
+    `customer_session` cookie (`src/lib/customerAuth.ts`); Google sign-in goes through Auth.js
+    (`src/lib/auth.ts`, JWT session strategy, no DB adapter — see `src/app/api/auth/[...nextauth]/`).
+    Anywhere that needs "who's logged in" should call `getCurrentCustomerEmail()`
+    (`src/lib/customer.ts`), which checks both, rather than reading either cookie/session
+    directly. A booking (or any customer-scoped read) attaches to a real `Customer` row
+    looked up/created from that email via `getOrCreateCustomerByEmail`. The old
+    `getDemoCustomer()` ("Jordan Diaz") helper has been removed — nothing hardcodes that
+    customer anymore, though `prisma/seed.ts` still seeds that row for convenience.
 - **No real payments.** Checkout records a booking with "Pay at the club"; nothing charges a
   card. Do not wire up a payment processor without being asked.
 - Font is Plus Jakarta Sans, loaded via `next/font/google` in `src/app/layout.tsx`

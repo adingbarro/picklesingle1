@@ -3,13 +3,12 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getDemoCustomer, getOrCreateCustomerByEmail } from "@/lib/customer";
+import { getCurrentCustomerEmail, getOrCreateCustomerByEmail } from "@/lib/customer";
 import { addMinutesToTime, generateConfirmationCode } from "@/lib/format";
 import {
   CUSTOMER_SESSION_COOKIE,
   CUSTOMER_SESSION_MAX_AGE,
   createCustomerSessionCookieValue,
-  readCustomerSessionEmail,
   verifyCustomerCredentials,
 } from "@/lib/customerAuth";
 
@@ -44,8 +43,7 @@ export async function createBooking(input: {
   duration: number;
   players: number;
 }) {
-  const cookieStore = await cookies();
-  const email = readCustomerSessionEmail(cookieStore.get(CUSTOMER_SESSION_COOKIE)?.value);
+  const email = await getCurrentCustomerEmail();
   if (!email) {
     return { error: "Please sign in to complete your booking." };
   }
@@ -92,7 +90,10 @@ export async function createBooking(input: {
 }
 
 export async function cancelBooking(bookingId: string) {
-  const customer = await getDemoCustomer();
+  const email = await getCurrentCustomerEmail();
+  if (!email) return;
+
+  const customer = await getOrCreateCustomerByEmail(email);
   await prisma.booking.updateMany({
     where: { id: bookingId, customerId: customer.id },
     data: { status: "CANCELLED" },
