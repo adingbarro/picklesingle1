@@ -10,7 +10,7 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await prisma.settings.findUnique({ where: { id: 1 } });
+  const settings = await prisma.settings.findUnique({ where: { id: 1 } }).catch(() => null);
   const companyName = settings?.companyName ?? "Baseline Pickleball Club";
   const tagline = settings?.tagline ?? "Book a pickleball court online";
 
