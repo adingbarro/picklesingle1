@@ -3,6 +3,14 @@
 import { useEffect, useState, useTransition } from "react";
 import { createManualBooking } from "@/app/admin/(protected)/manual-booking/actions";
 import { peso, timeLabel } from "@/lib/format";
+import { groupContiguousSlots } from "@/lib/slots";
+
+// Slots are picked one hour at a time; contiguous picks are merged into a
+// single booking server-side, so there's no separate duration control.
+const SLOT_MINUTES = 60;
+const MAX_SLOTS = 24;
+
+type Pick = { courtId: string; start: string };
 
 type Slot = { start: string; end: string; available: boolean };
 type CourtWithSlots = {
@@ -25,9 +33,8 @@ function todayDateKey(): string {
 
 export default function ManualBookingManager() {
   const [date, setDate] = useState(todayDateKey());
-  const [duration, setDuration] = useState(60);
   const [courts, setCourts] = useState<CourtWithSlots[] | null>(null);
-  const [selected, setSelected] = useState<{ courtId: string; start: string } | null>(null);
+  const [selected, setSelected] = useState<Pick[]>([]);
 
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
@@ -38,56 +45,64 @@ export default function ManualBookingManager() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const requestKey = `${date}|${duration}`;
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/day-availability?date=${date}&duration=${duration}`)
+    fetch(`/api/day-availability?date=${date}&duration=${SLOT_MINUTES}`)
       .then((r) => r.json())
       .then((data) => {
         if (!cancelled) {
           setCourts(data.courts ?? []);
-          setLoadedFor(requestKey);
+          setLoadedFor(date);
         }
       });
     return () => {
       cancelled = true;
     };
-  }, [date, duration, requestKey]);
+  }, [date]);
 
-  const loading = loadedFor !== requestKey;
+  const loading = loadedFor !== date;
 
   function handleDateChange(v: string) {
     setDate(v);
-    setSelected(null);
+    setSelected([]);
     setSuccessMsg(null);
   }
 
-  function handleDurationChange(v: number) {
-    setDuration(v);
-    setSelected(null);
-    setSuccessMsg(null);
-  }
-
-  function selectSlot(courtId: string, start: string) {
-    setSelected({ courtId, start });
+  function toggleSlot(courtId: string, start: string) {
+    setSelected((prev) => {
+      const isPicked = prev.some((p) => p.courtId === courtId && p.start === start);
+      if (isPicked) return prev.filter((p) => !(p.courtId === courtId && p.start === start));
+      return prev.length >= MAX_SLOTS ? prev : [...prev, { courtId, start }];
+    });
     setSuccessMsg(null);
     setError(null);
   }
 
-  const selectedCourt = courts?.find((c) => c.id === selected?.courtId) ?? null;
-  const price = selectedCourt ? Math.round((selectedCourt.pricePerHour * duration) / 60) : 0;
+  // One summary line per court, with contiguous hours shown as a single block —
+  // the same way they'll be saved.
+  const summary = (courts ?? [])
+    .map((court) => {
+      const starts = selected.filter((p) => p.courtId === court.id).map((p) => p.start);
+      if (starts.length === 0) return null;
+      const blocks = groupContiguousSlots(starts);
+      return {
+        court,
+        blocks,
+        price: Math.round((court.pricePerHour * starts.length * SLOT_MINUTES) / 60),
+      };
+    })
+    .filter((row) => row !== null);
+  const totalPrice = summary.reduce((sum, row) => sum + row.price, 0);
 
   function handleSubmit() {
-    if (!selected) return;
+    if (selected.length === 0) return;
     setError(null);
     startTransition(async () => {
       const result = await createManualBooking({
-        courtId: selected.courtId,
+        picks: selected,
         date,
-        start: selected.start,
-        duration,
         players,
         customerName,
         customerEmail,
@@ -97,14 +112,17 @@ export default function ManualBookingManager() {
         setError(result.error);
         return;
       }
-      setSuccessMsg(`Booking confirmed — ${result?.confirmationCode}`);
-      setSelected(null);
+      const codes = result?.confirmationCodes ?? [];
+      setSuccessMsg(
+        codes.length > 1 ? `${codes.length} bookings confirmed — ${codes.join(", ")}` : `Booking confirmed — ${codes[0]}`
+      );
+      setSelected([]);
       setCustomerName("");
       setCustomerEmail("");
       setCustomerPhone("");
       setPlayers(2);
-      // refetch availability so the just-booked slot shows as taken
-      fetch(`/api/day-availability?date=${date}&duration=${duration}`)
+      // refetch availability so the just-booked slots show as taken
+      fetch(`/api/day-availability?date=${date}&duration=${SLOT_MINUTES}`)
         .then((r) => r.json())
         .then((data) => setCourts(data.courts ?? []));
     });
@@ -119,32 +137,17 @@ export default function ManualBookingManager() {
         </div>
       </div>
 
-      <div className="admin-content" style={{ paddingBottom: selected ? 140 : 60 }}>
+      <div className="admin-content" style={{ paddingBottom: selected.length > 0 ? 140 : 60 }}>
         <div className="card pad">
           <div className="mb-toolbar">
             <div className="field">
               <label>Date</label>
               <input type="date" value={date} onChange={(e) => handleDateChange(e.target.value)} />
             </div>
-            <div className="field">
-              <label>Duration</label>
-              <div className="segmented" style={{ width: 180 }}>
-                <button
-                  type="button"
-                  className={`seg-btn${duration === 60 ? " active" : ""}`}
-                  onClick={() => handleDurationChange(60)}
-                >
-                  60 min
-                </button>
-                <button
-                  type="button"
-                  className={`seg-btn${duration === 120 ? " active" : ""}`}
-                  onClick={() => handleDurationChange(120)}
-                >
-                  120 min
-                </button>
-              </div>
-            </div>
+            <p className="mb-empty" style={{ flex: 1, minWidth: 260, margin: 0, paddingBottom: 8 }}>
+              Tap one or more hours — contiguous hours become a single booking, gaps become separate ones. You can
+              pick across courts for the same customer.
+            </p>
           </div>
         </div>
 
@@ -184,32 +187,42 @@ export default function ManualBookingManager() {
               {c.status === "MAINTENANCE" ? (
                 <p className="mb-empty">Not bookable while under maintenance.</p>
               ) : c.slots.length === 0 ? (
-                <p className="mb-empty">No slots available for this date/duration.</p>
+                <p className="mb-empty">No slots available for this date.</p>
               ) : (
                 <div className="mb-slot-row">
-                  {c.slots.map((s) => (
-                    <div
-                      key={s.start}
-                      className={`mb-slot${!s.available ? " taken" : ""}${
-                        selected?.courtId === c.id && selected.start === s.start ? " selected" : ""
-                      }`}
-                      onClick={() => s.available && selectSlot(c.id, s.start)}
-                    >
-                      {timeLabel(s.start)}
-                      <span className="p">{peso(Math.round((c.pricePerHour * duration) / 60))}</span>
-                    </div>
-                  ))}
+                  {c.slots.map((s) => {
+                    const isSelected = selected.some((p) => p.courtId === c.id && p.start === s.start);
+                    const disabled = !s.available || (selected.length >= MAX_SLOTS && !isSelected);
+                    return (
+                      <div
+                        key={s.start}
+                        className={`mb-slot${!s.available ? " taken" : ""}${isSelected ? " selected" : ""}`}
+                        onClick={() => !disabled && toggleSlot(c.id, s.start)}
+                      >
+                        {timeLabel(s.start)}
+                        <span className="p">{s.available ? peso(c.pricePerHour) : "Booked"}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
           ))}
       </div>
 
-      {selected && selectedCourt && (
+      {selected.length > 0 && (
         <div className="mb-summary-bar">
           <div className="info">
             <div className="t1">
-              {selectedCourt.name} · {timeLabel(selected.start)} · {duration} min · {peso(price)}
+              {summary.map((row) => (
+                <div key={row.court.id}>
+                  <b style={{ color: "var(--ink)" }}>{row.court.name}</b>{" "}
+                  {row.blocks.map((b) => `${timeLabel(b.start)}–${timeLabel(b.end)}`).join(", ")} · {peso(row.price)}
+                </div>
+              ))}
+            </div>
+            <div className="t2">
+              {selected.length} {selected.length === 1 ? "hr" : "hrs"} · {peso(totalPrice)}
             </div>
             <div className="mb-customer-fields" style={{ marginTop: 8 }}>
               <div className="field">
@@ -266,8 +279,8 @@ export default function ManualBookingManager() {
           <button className="pill-btn" onClick={handleSubmit} disabled={pending || !customerName.trim()}>
             {pending ? "Booking…" : "Create Booking"}
           </button>
-          <button className="pill-btn secondary" onClick={() => setSelected(null)} disabled={pending}>
-            Cancel
+          <button className="pill-btn secondary" onClick={() => setSelected([])} disabled={pending}>
+            Clear
           </button>
         </div>
       )}

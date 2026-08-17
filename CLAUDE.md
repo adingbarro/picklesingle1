@@ -8,6 +8,13 @@ A database-backed pickleball court booking app: a mobile customer booking flow (
 Router, Server Components, Server Actions), TypeScript, and PostgreSQL. Target deployment is
 Railway.
 
+The customer home page **is** the booking flow: a horizontal court slider → a month calendar for
+the selected court → that court's hour slots for that date (`src/components/HomeCourtBooking.tsx`).
+The bottom tab bar is Home · Bookings · Contact · Profile/Login. `/book` and `/courts/[id]` still
+exist and work but are no longer linked from the nav, and the old home "quick actions" row
+(Book a Court / Open Play / Clinics) is removed from `src/app/(customer)/page.tsx` — its CSS is
+still in `globals.css` if it needs to come back.
+
 The original static HTML mockups this was built from live in `reference/` for design reference
 only — they are not wired to anything and should not be edited to "fix" the app.
 
@@ -20,6 +27,35 @@ only — they are not wired to anything and should not be edited to "fix" the ap
   into `schema.prisma` — it's a hard validation error in this Prisma version.
 - **Money is in Philippine pesos (₱), stored as whole-number integers** (no cents). Use
   `peso()` from `src/lib/format.ts` for display.
+- **Availability is picked one hour at a time, and picks don't have to be contiguous.** Both the
+  home page and `/admin/manual-booking` let the user select several hour slots; the server groups
+  them with `groupContiguousSlots()` (`src/lib/slots.ts`), so 1am+2am+4am becomes a 2-hour booking
+  plus a 1-hour booking — **one selection can create several `Booking` rows**. Consequences to
+  keep in mind:
+  - The customer flow charges the ₱50 service fee **once per checkout**: the first row carries it,
+    the rest carry 0, so summing the rows still equals the quoted total.
+  - `createBooking` redirects to `/confirmation/<firstId>?ids=<all>`; the confirmation page lists
+    a time row per block and only groups rows with the same customer/court/date.
+  - `/checkout` takes either `starts=07:00,08:00` (home page) or the legacy `start`+`duration`
+    (court detail page), which it expands into the same hour list.
+  - Both create paths re-check availability with `generateSlots()` before writing and write inside
+    a `prisma.$transaction`. Don't rely on `@@unique([courtId, date, startTime])` alone — it only
+    guards a booking's own start time, so a multi-hour block can otherwise overlap an existing
+    booking's later hours.
+  - Slot styling is shared: available slots use the `--slot-line` border, taken slots render
+    greyed and non-clickable rather than being hidden.
+- **`Settings` also holds club links and contact config**, all optional and all edited on `/admin`
+  (General Settings): `facebookUrl`, `mapsUrl` (linked from the home hero — icon and address),
+  `whatsappNumber`, `telegramUsername`, `viberNumber` (quick-contact cards on `/contact`, hidden
+  when blank), and `brevoApiKey`/`brevoSenderEmail`. Pass any admin-entered URL through
+  `safeExternalUrl()` (`src/lib/format.ts`) before putting it in an `href` — it normalizes a
+  scheme-less entry to `https://` and drops anything that isn't http(s).
+- **The `/contact` form emails through Brevo** (`src/app/(customer)/contact/actions.ts`, no SDK —
+  a plain `fetch` to `https://api.brevo.com/v3/smtp/email`). From = `brevoSenderEmail`, To =
+  `Settings.email` (Company Details), Reply-To = the address the customer typed, subject =
+  `Customer Inquiry - <Company Name> <mmddyyyy>` in Manila time. The customer's message is sent as
+  `textContent` only — never interpolate it into HTML. With any of the three settings missing, the
+  form tells the customer to message the Facebook page instead of silently dropping the message.
 - **Admin auth is a single hardcoded admin; customer auth is a hardcoded email/password login
   plus real Google sign-in, both feeding the same `Customer` table — still not a real
   multi-provider user system (no bcrypt, no users table, no sign-up).** Admin credentials live

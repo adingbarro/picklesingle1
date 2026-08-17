@@ -10,12 +10,16 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const year = parseInt(searchParams.get("year") ?? "", 10);
   const month = parseInt(searchParams.get("month") ?? "", 10); // 1-12
+  // Optional: narrow the check to a single court instead of "any court is free".
+  const courtId = searchParams.get("courtId") ?? undefined;
 
   if (!year || !month || month < 1 || month > 12) {
     return NextResponse.json({ error: "valid year and month (1-12) are required" }, { status: 400 });
   }
 
-  const activeCourts = await prisma.court.findMany({ where: { status: "ACTIVE" } });
+  const activeCourts = await prisma.court.findMany({
+    where: { status: "ACTIVE", ...(courtId ? { id: courtId } : {}) },
+  });
   if (activeCourts.length === 0) {
     return NextResponse.json({ fullyBooked: [] });
   }
@@ -23,7 +27,7 @@ export async function GET(req: NextRequest) {
   const monthStart = new Date(Date.UTC(year, month - 1, 1));
   const monthEnd = new Date(Date.UTC(year, month, 1));
   const bookings = await prisma.booking.findMany({
-    where: { date: { gte: monthStart, lt: monthEnd }, status: "CONFIRMED" },
+    where: { date: { gte: monthStart, lt: monthEnd }, status: "CONFIRMED", ...(courtId ? { courtId } : {}) },
     select: { date: true, courtId: true, startTime: true, endTime: true },
   });
 

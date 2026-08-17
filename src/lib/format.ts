@@ -35,6 +35,23 @@ export function timeToMinutes(hhmm: string): number {
   return h * 60 + m;
 }
 
+/**
+ * Only let http(s) links out of the settings fields into an href — an admin
+ * pasting something like `javascript:…` shouldn't become a live link.
+ */
+export function safeExternalUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const parsed = new URL(withScheme);
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 export function generateConfirmationCode(): string {
   return "PB-" + Math.floor(10000 + Math.random() * 89999);
 }

@@ -2,13 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { addMinutesToTime, generateConfirmationCode } from "@/lib/format";
+import { generateConfirmationCode } from "@/lib/format";
+import { generateSlots, groupContiguousSlots } from "@/lib/slots";
+
+// Upper bound on one manual booking, across all courts picked.
+const MAX_SLOTS = 24;
 
 export async function createManualBooking(input: {
-  courtId: string;
+  /** Hour slots the admin picked; they can span several courts and needn't be contiguous. */
+  picks: { courtId: string; start: string }[];
   date: string;
-  start: string;
-  duration: number;
   players: number;
   customerName: string;
   customerEmail?: string;
@@ -19,19 +22,67 @@ export async function createManualBooking(input: {
     return { error: "Customer name is required." };
   }
 
-  const court = await prisma.court.findUnique({ where: { id: input.courtId } });
-  if (!court) {
-    return { error: "This court no longer exists." };
+  const picks = [...new Map(input.picks.map((p) => [`${p.courtId}|${p.start}`, p])).values()];
+  if (picks.length === 0) {
+    return { error: "Pick at least one time slot." };
   }
-  if (court.status !== "ACTIVE") {
-    return { error: "This court is currently under maintenance and cannot be booked." };
+  if (picks.length > MAX_SLOTS) {
+    return { error: `You can book up to ${MAX_SLOTS} hours at a time.` };
   }
 
-  const duration = [60, 120].includes(input.duration) ? input.duration : 60;
+  const startsByCourt = new Map<string, string[]>();
+  for (const p of picks) {
+    startsByCourt.set(p.courtId, [...(startsByCourt.get(p.courtId) ?? []), p.start]);
+  }
+
+  const date = new Date(`${input.date}T00:00:00.000Z`);
+  const courts = await prisma.court.findMany({ where: { id: { in: [...startsByCourt.keys()] } } });
+  if (courts.length !== startsByCourt.size) {
+    return { error: "One of those courts no longer exists." };
+  }
+  const maintenance = courts.find((c) => c.status !== "ACTIVE");
+  if (maintenance) {
+    return { error: `${maintenance.name} is under maintenance and cannot be booked.` };
+  }
+
+  // Availability has to be re-checked here: the unique constraint only guards a
+  // booking's own start time, so a multi-hour block overlapping an existing
+  // booking's later hours would otherwise go through.
+  const rows: {
+    courtId: string;
+    startTime: string;
+    endTime: string;
+    durationMin: number;
+    courtPrice: number;
+  }[] = [];
+
+  for (const court of courts) {
+    const starts = startsByCourt.get(court.id)!;
+    const existingBookings = await prisma.booking.findMany({
+      where: { courtId: court.id, date, status: "CONFIRMED" },
+      select: { startTime: true, endTime: true },
+    });
+    const bookable = new Set(
+      generateSlots(court.opensAt, court.closesAt, court.is24Hours, 60, existingBookings)
+        .filter((s) => s.available)
+        .map((s) => s.start)
+    );
+    if (starts.some((s) => !bookable.has(s))) {
+      return { error: `One of the times picked on ${court.name} is no longer available.` };
+    }
+
+    for (const segment of groupContiguousSlots(starts)) {
+      rows.push({
+        courtId: court.id,
+        startTime: segment.start,
+        endTime: segment.end,
+        durationMin: segment.minutes,
+        courtPrice: Math.round((court.pricePerHour * segment.minutes) / 60),
+      });
+    }
+  }
+
   const players = Math.min(4, Math.max(1, input.players));
-  const endTime = addMinutesToTime(input.start, duration);
-  const courtPrice = Math.round((court.pricePerHour * duration) / 60);
-
   const email = input.customerEmail?.trim() || null;
   const phone = input.customerPhone?.trim() || null;
 
@@ -44,24 +95,28 @@ export async function createManualBooking(input: {
     : await prisma.customer.create({ data: { name, phone } });
 
   try {
-    const booking = await prisma.booking.create({
-      data: {
-        courtId: court.id,
-        customerId: customer.id,
-        date: new Date(`${input.date}T00:00:00.000Z`),
-        startTime: input.start,
-        endTime,
-        durationMin: duration,
-        players,
-        courtPrice,
-        serviceFee: 0,
-        totalPrice: courtPrice,
-        confirmationCode: generateConfirmationCode(),
-      },
+    const confirmationCodes = await prisma.$transaction(async (tx) => {
+      const codes: string[] = [];
+      for (const row of rows) {
+        const booking = await tx.booking.create({
+          data: {
+            ...row,
+            customerId: customer.id,
+            date,
+            players,
+            serviceFee: 0,
+            totalPrice: row.courtPrice,
+            confirmationCode: generateConfirmationCode(),
+          },
+        });
+        codes.push(booking.confirmationCode);
+      }
+      return codes;
     });
+
     revalidatePath("/admin/manual-booking");
     revalidatePath("/bookings");
-    return { success: true as const, confirmationCode: booking.confirmationCode };
+    return { success: true as const, confirmationCodes };
   } catch (err: unknown) {
     if (typeof err === "object" && err !== null && "code" in err && (err as { code: string }).code === "P2002") {
       return { error: "That time slot was just booked. Please pick another." };

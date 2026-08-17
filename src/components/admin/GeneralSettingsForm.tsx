@@ -9,6 +9,13 @@ type Settings = {
   address: string;
   phone: string;
   email: string;
+  facebookUrl: string;
+  mapsUrl: string;
+  whatsappNumber: string;
+  telegramUsername: string;
+  viberNumber: string;
+  brevoApiKey: string;
+  brevoSenderEmail: string;
   logoDataUrl: string | null;
   defaultOpen: string;
   defaultClose: string;
@@ -112,6 +119,109 @@ export default function GeneralSettingsForm({ initial }: { initial: Settings }) 
             <div className="field">
               <label>Email</label>
               <input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} />
+            </div>
+          </div>
+        </div>
+
+        <div className="card pad">
+          <h3>Links</h3>
+          <p className="desc">
+            Shown on the customer home screen — the Facebook icon and the address in the club header link here.
+          </p>
+          <div className="form-grid">
+            <div className="field span2">
+              <label>Facebook Page</label>
+              <input
+                type="url"
+                inputMode="url"
+                placeholder="https://facebook.com/yourclub"
+                value={form.facebookUrl}
+                onChange={(e) => set("facebookUrl", e.target.value)}
+              />
+              <p className="hint">Leave blank to hide the Facebook icon.</p>
+            </div>
+            <div className="field span2">
+              <label>Google Maps Link</label>
+              <input
+                type="url"
+                inputMode="url"
+                placeholder="https://maps.app.goo.gl/…"
+                value={form.mapsUrl}
+                onChange={(e) => set("mapsUrl", e.target.value)}
+              />
+              <p className="hint">
+                Open your club in Google Maps, tap Share, and paste the link. Leave blank and the address stays plain
+                text.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card pad">
+          <h3>Messaging</h3>
+          <p className="desc">Shown as quick-contact buttons on the customer Contact page. Leave a field blank to hide it.</p>
+          <div className="form-grid">
+            <div className="field">
+              <label>WhatsApp Number</label>
+              <input
+                type="tel"
+                placeholder="+63 912 345 6789"
+                value={form.whatsappNumber}
+                onChange={(e) => set("whatsappNumber", e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label>Telegram Username</label>
+              <input
+                type="text"
+                placeholder="@yourclub"
+                value={form.telegramUsername}
+                onChange={(e) => set("telegramUsername", e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label>Viber</label>
+              <input
+                type="tel"
+                placeholder="+63 912 345 6789"
+                value={form.viberNumber}
+                onChange={(e) => set("viberNumber", e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="card pad">
+          <h3>Contact Form Settings</h3>
+          <p className="desc">
+            Contact form messages are emailed through Brevo. Without both fields the form tells customers to message
+            your Facebook page instead.
+          </p>
+          <div className="form-grid">
+            <div className="field span2">
+              <label>Brevo API Key</label>
+              <input
+                type="password"
+                autoComplete="off"
+                placeholder="xkeysib-…"
+                value={form.brevoApiKey}
+                onChange={(e) => set("brevoApiKey", e.target.value)}
+              />
+              <p className="hint">From Brevo → SMTP &amp; API → API Keys.</p>
+            </div>
+            <div className="field span2">
+              <label>Sender</label>
+              <input
+                type="email"
+                placeholder="noreply@yourclub.com"
+                value={form.brevoSenderEmail}
+                onChange={(e) => set("brevoSenderEmail", e.target.value)}
+              />
+              <p className="hint">
+                Must be a verified sender in Brevo. Messages are delivered to your company email
+                {form.email ? ` (${form.email})` : " — set one under Company Details"}, with the customer&apos;s address
+                as reply-to.
+              </p>
             </div>
           </div>
         </div>

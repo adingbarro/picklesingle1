@@ -33,6 +33,15 @@ model Settings {
   address      String?
   phone        String?
   email        String?
+  facebookUrl  String?
+  mapsUrl      String?
+  // Messaging handles shown on the customer contact page.
+  whatsappNumber   String?
+  telegramUsername String?
+  viberNumber      String?
+  // Contact form delivery (Brevo transactional email).
+  brevoApiKey      String?
+  brevoSenderEmail String?
   logoDataUrl  String?  @db.Text
   defaultOpen  String   @default("06:00")
   defaultClose String   @default("22:00")

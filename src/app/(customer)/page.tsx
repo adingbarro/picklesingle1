@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { isOpenNow, timeToMinutes } from "@/lib/format";
+import { isOpenNow, timeToMinutes, safeExternalUrl } from "@/lib/format";
 import { getCurrentCustomerEmail, getOrCreateCustomerByEmail } from "@/lib/customer";
-import HomeDateAndCourts from "@/components/HomeDateAndCourts";
+import HomeCourtBooking from "@/components/HomeCourtBooking";
 
 export const dynamic = "force-dynamic";
 
@@ -16,8 +16,10 @@ export default async function HomePage() {
     prisma.facility.findMany({ where: { enabled: true } }),
   ]);
 
-  const courts = allCourts.slice(0, 4);
+  const courts = allCourts;
   const companyName = settings?.companyName ?? "Pickleball Club";
+  const facebookUrl = safeExternalUrl(settings?.facebookUrl);
+  const mapsUrl = safeExternalUrl(settings?.mapsUrl);
   const initial = companyName.trim().charAt(0).toUpperCase() || "?";
   const indoorCount = allCourts.filter((c) => c.type === "INDOOR").length;
   const outdoorCount = allCourts.filter((c) => c.type === "OUTDOOR").length;
@@ -71,12 +73,33 @@ export default async function HomePage() {
             <span style={{ fontSize: 12, opacity: 0.9 }}>opens {to12h(earliestOpen)}</span>
           )}
         </div>
-        <div className="name">{companyName}</div>
-        {settings?.address && (
-          <div className="meta">
-            <span>📍 {settings.address}</span>
-          </div>
+        {facebookUrl && (
+          <a
+            className="hero-social"
+            href={facebookUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`${companyName} on Facebook`}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0 0 22 12z" />
+            </svg>
+          </a>
         )}
+        <div className="name">{companyName}</div>
+        {settings?.address &&
+          (mapsUrl ? (
+            <a className="meta meta-link" href={mapsUrl} target="_blank" rel="noopener noreferrer">
+              <span>📍 {settings.address}</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                <path d="M7 17L17 7M9 7h8v8" />
+              </svg>
+            </a>
+          ) : (
+            <div className="meta">
+              <span>📍 {settings.address}</span>
+            </div>
+          ))}
         <div className="stats">
           <div className="stat">
             <b>{allCourts.length}</b>
@@ -93,37 +116,9 @@ export default async function HomePage() {
         </div>
       </div>
 
-      <div className="quick-actions">
-        <Link href="/book" className="qa-btn">
-          <div className="ic">
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="5" width="18" height="16" rx="2" />
-              <path d="M8 3v4M16 3v4M3 10h18" />
-            </svg>
-          </div>
-          <span>Book a Court</span>
-        </Link>
-        <div className="qa-btn">
-          <div className="ic">
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 7v5l3 2" />
-            </svg>
-          </div>
-          <span>Open Play</span>
-        </div>
-        <div className="qa-btn">
-          <div className="ic">
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 2 3 7l9 5 9-5-9-5z" />
-              <path d="M3 12l9 5 9-5" />
-            </svg>
-          </div>
-          <span>Clinics</span>
-        </div>
-      </div>
+      {/* Quick actions (Book a Court / Open Play / Clinics) are hidden for now. */}
 
-      <HomeDateAndCourts
+      <HomeCourtBooking
         courts={courts.map((c) => ({
           id: c.id,
           name: c.name,

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { formatDateLabel, timeLabel, addMinutesToTime } from "@/lib/format";
+import { formatDateLabel, timeLabel } from "@/lib/format";
+import { groupContiguousSlots } from "@/lib/slots";
 import { getCurrentCustomerEmail } from "@/lib/customer";
 import CheckoutForm from "@/components/CheckoutForm";
 
@@ -13,16 +14,26 @@ export default async function CheckoutPage({
   const sp = await searchParams;
   const courtId = typeof sp.courtId === "string" ? sp.courtId : undefined;
   const date = typeof sp.date === "string" ? sp.date : undefined;
+  // Two entry points: the homepage passes a list of picked hours (`starts`),
+  // the court detail page passes a single start plus a duration.
+  const startsParam = typeof sp.starts === "string" ? sp.starts : undefined;
   const start = typeof sp.start === "string" ? sp.start : undefined;
   const duration = typeof sp.duration === "string" ? parseInt(sp.duration, 10) : 60;
 
-  if (!courtId || !date || !start) notFound();
+  const starts = startsParam
+    ? startsParam.split(",").filter((s) => /^\d{2}:\d{2}$/.test(s))
+    : start
+      ? expandToHourSlots(start, duration)
+      : [];
+
+  if (!courtId || !date || starts.length === 0) notFound();
 
   const court = await prisma.court.findUnique({ where: { id: courtId } });
   if (!court) notFound();
 
-  const endTime = addMinutesToTime(start, duration);
-  const courtPrice = Math.round((court.pricePerHour * duration) / 60);
+  const segments = groupContiguousSlots(starts);
+  const totalMinutes = segments.reduce((sum, s) => sum + s.minutes, 0);
+  const courtPrice = Math.round((court.pricePerHour * totalMinutes) / 60);
   const serviceFee = 50;
 
   const isLoggedIn = (await getCurrentCustomerEmail()) !== null;
@@ -47,8 +58,13 @@ export default async function CheckoutPage({
                 {court.name} · {court.type === "INDOOR" ? "Indoor" : "Outdoor"}
               </div>
               <div className="court-meta" style={{ marginTop: 6 }}>
-                🗓️ {formatDateLabel(new Date(`${date}T00:00:00.000Z`))} · ⏰ {timeLabel(start)} – {timeLabel(endTime)}
+                🗓️ {formatDateLabel(new Date(`${date}T00:00:00.000Z`))}
               </div>
+              {segments.map((s) => (
+                <div key={s.start} className="court-meta" style={{ marginTop: 4 }}>
+                  ⏰ {timeLabel(s.start)} – {timeLabel(s.end)}
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -57,12 +73,22 @@ export default async function CheckoutPage({
       <CheckoutForm
         courtId={court.id}
         date={date}
-        start={start}
-        duration={duration}
+        starts={starts}
+        totalMinutes={totalMinutes}
         courtPrice={courtPrice}
         serviceFee={serviceFee}
         isLoggedIn={isLoggedIn}
       />
     </div>
   );
+}
+
+/** "10:00" + 120 min -> ["10:00", "11:00"] */
+function expandToHourSlots(start: string, duration: number): string[] {
+  const hours = Math.max(1, Math.round(duration / 60));
+  const [h, m] = start.split(":").map(Number);
+  return Array.from({ length: hours }, (_, i) => {
+    const hh = (h + i) % 24;
+    return `${hh.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+  });
 }

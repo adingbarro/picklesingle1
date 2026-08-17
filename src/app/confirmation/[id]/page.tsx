@@ -5,14 +5,32 @@ import { peso, formatDateLabel, timeLabel } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-export default async function ConfirmationPage({ params }: PageProps<"/confirmation/[id]">) {
+export default async function ConfirmationPage({ params, searchParams }: PageProps<"/confirmation/[id]">) {
   const { id } = await params;
-  const booking = await prisma.booking.findUnique({
-    where: { id },
+  const sp = await searchParams;
+
+  // Picking non-contiguous hours creates one booking per block; `ids` carries
+  // the whole set so the confirmation shows the full reservation, not just one.
+  const idsParam = typeof sp.ids === "string" ? sp.ids.split(",").filter(Boolean) : [];
+  const ids = [...new Set([id, ...idsParam])];
+
+  const bookings = await prisma.booking.findMany({
+    where: { id: { in: ids } },
     include: { court: true },
+    orderBy: { startTime: "asc" },
   });
 
+  const booking = bookings.find((b) => b.id === id);
   if (!booking) notFound();
+
+  // Only group bookings that really belong together.
+  const group = bookings.filter(
+    (b) =>
+      b.customerId === booking.customerId &&
+      b.courtId === booking.courtId &&
+      b.date.getTime() === booking.date.getTime()
+  );
+  const amountDue = group.reduce((sum, b) => sum + b.totalPrice, 0);
 
   return (
     <div className="app-shell">
@@ -40,12 +58,14 @@ export default async function ConfirmationPage({ params }: PageProps<"/confirmat
             <span>Date</span>
             <span>{formatDateLabel(booking.date)}</span>
           </div>
-          <div className="row">
-            <span>Time</span>
-            <span>
-              {timeLabel(booking.startTime)} – {timeLabel(booking.endTime)}
-            </span>
-          </div>
+          {group.map((b, i) => (
+            <div className="row" key={b.id}>
+              <span>{i === 0 ? "Time" : ""}</span>
+              <span>
+                {timeLabel(b.startTime)} – {timeLabel(b.endTime)}
+              </span>
+            </div>
+          ))}
           <div className="row">
             <span>Players</span>
             <span>{booking.players}</span>
@@ -53,11 +73,11 @@ export default async function ConfirmationPage({ params }: PageProps<"/confirmat
           <hr />
           <div className="row">
             <span>Confirmation #</span>
-            <span>{booking.confirmationCode}</span>
+            <span>{group.map((b) => b.confirmationCode).join(", ")}</span>
           </div>
           <div className="row">
             <span>Amount due</span>
-            <span>{peso(booking.totalPrice)}</span>
+            <span>{peso(amountDue)}</span>
           </div>
         </div>
 

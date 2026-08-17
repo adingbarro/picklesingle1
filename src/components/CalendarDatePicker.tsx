@@ -29,9 +29,12 @@ function toDateKey(y: number, m: number, d: number): string {
 export default function CalendarDatePicker({
   selected,
   onSelect,
+  courtId,
 }: {
   selected: string;
   onSelect: (dateKey: string) => void;
+  /** When set, "fully booked" days reflect only this court instead of all courts. */
+  courtId?: string;
 }) {
   const today = new Date();
   const todayKey = toDateKey(today.getFullYear(), today.getMonth() + 1, today.getDate());
@@ -41,12 +44,12 @@ export default function CalendarDatePicker({
   const [viewMonth, setViewMonth] = useState(selMonth || today.getMonth() + 1); // 1-12
   const [fullyBooked, setFullyBooked] = useState<string[] | null>(null);
 
-  const requestKey = `${viewYear}-${viewMonth}`;
+  const requestKey = `${viewYear}-${viewMonth}-${courtId ?? "all"}`;
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/day-status?year=${viewYear}&month=${viewMonth}`)
+    fetch(`/api/day-status?year=${viewYear}&month=${viewMonth}${courtId ? `&courtId=${courtId}` : ""}`)
       .then((r) => r.json())
       .then((data) => {
         if (!cancelled) {
@@ -57,7 +60,7 @@ export default function CalendarDatePicker({
     return () => {
       cancelled = true;
     };
-  }, [viewYear, viewMonth, requestKey]);
+  }, [viewYear, viewMonth, courtId, requestKey]);
 
   const loading = loadedFor !== requestKey;
   const fullSet = new Set(fullyBooked ?? []);

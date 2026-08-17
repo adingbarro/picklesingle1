@@ -42,6 +42,33 @@ export function generateSlots(
   return slots;
 }
 
+export type SlotSegment = { start: string; end: string; minutes: number };
+
+/**
+ * Collapse a set of individually-picked hour slots into the fewest bookable
+ * blocks: ["01:00","02:00","04:00"] becomes a 2-hour block at 01:00 and a
+ * 1-hour block at 04:00. Input is deduped and sorted, so callers can pass
+ * selections in click order.
+ */
+export function groupContiguousSlots(starts: string[]): SlotSegment[] {
+  const sorted = [...new Set(starts)].sort();
+  const segments: SlotSegment[] = [];
+
+  for (const start of sorted) {
+    const last = segments[segments.length - 1];
+    // "00:00" as an end means end-of-day (the 23:00 slot), which is always the
+    // last one, so it can never match a following start.
+    if (last && last.end !== "00:00" && timeToMinutes(last.end) === timeToMinutes(start)) {
+      last.end = addMinutesToTime(start, SLOT_INTERVAL_MIN);
+      last.minutes += SLOT_INTERVAL_MIN;
+    } else {
+      segments.push({ start, end: addMinutesToTime(start, SLOT_INTERVAL_MIN), minutes: SLOT_INTERVAL_MIN });
+    }
+  }
+
+  return segments;
+}
+
 function minutesToTime(total: number): string {
   const h = Math.floor(total / 60) % 24;
   const m = total % 60;

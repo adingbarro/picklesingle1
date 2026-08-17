@@ -8,19 +8,24 @@ import { peso } from "@/lib/format";
 
 const initialLoginState: LoginState = { error: null };
 
+function formatDurationLabel(minutes: number): string {
+  const hours = minutes / 60;
+  return `${hours} ${hours === 1 ? "hr" : "hrs"}`;
+}
+
 export default function CheckoutForm({
   courtId,
   date,
-  start,
-  duration,
+  starts,
+  totalMinutes,
   courtPrice,
   serviceFee,
   isLoggedIn,
 }: {
   courtId: string;
   date: string;
-  start: string;
-  duration: number;
+  starts: string[];
+  totalMinutes: number;
   courtPrice: number;
   serviceFee: number;
   isLoggedIn: boolean;
@@ -38,7 +43,7 @@ export default function CheckoutForm({
   function submitBooking() {
     setError(null);
     startTransition(async () => {
-      const result = await createBooking({ courtId, date, start, duration, players });
+      const result = await createBooking({ courtId, date, starts, players });
       if (result?.error) {
         setError(result.error);
       }
@@ -127,7 +132,7 @@ export default function CheckoutForm({
         <div className="card" style={{ padding: 16 }}>
           <div className="ticket" style={{ padding: 0 }}>
             <div className="row">
-              <span>Court rental ({duration} min)</span>
+              <span>Court rental ({formatDurationLabel(totalMinutes)})</span>
               <span>{peso(courtPrice)}</span>
             </div>
             <div className="row">

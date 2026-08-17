@@ -9,6 +9,13 @@ export async function updateSettings(data: {
   address: string;
   phone: string;
   email: string;
+  facebookUrl: string;
+  mapsUrl: string;
+  whatsappNumber: string;
+  telegramUsername: string;
+  viberNumber: string;
+  brevoApiKey: string;
+  brevoSenderEmail: string;
   logoDataUrl: string | null;
   defaultOpen: string;
   defaultClose: string;
