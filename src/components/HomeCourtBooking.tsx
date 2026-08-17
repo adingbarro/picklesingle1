@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import CalendarDatePicker from "./CalendarDatePicker";
-import { peso, timeLabel } from "@/lib/format";
+import { peso, timeLabel, todayManilaDateKey } from "@/lib/format";
 
 type CourtPreview = {
   id: string;
@@ -22,19 +22,11 @@ type Slot = { start: string; end: string; available: boolean };
 const DURATION = 60;
 const MAX_SLOTS = 12;
 
-function todayDateKey(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = (d.getMonth() + 1).toString().padStart(2, "0");
-  const day = d.getDate().toString().padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
 export default function HomeCourtBooking({ courts }: { courts: CourtPreview[] }) {
   const router = useRouter();
   const stripRef = useRef<HTMLDivElement>(null);
   const [courtId, setCourtId] = useState(courts[0]?.id ?? null);
-  const [selectedDate, setSelectedDate] = useState(todayDateKey());
+  const [selectedDate, setSelectedDate] = useState(todayManilaDateKey());
   const [selected, setSelected] = useState<string[]>([]);
   const [slotsFor, setSlotsFor] = useState<{ key: string; slots: Slot[] } | null>(null);
 
@@ -99,7 +91,13 @@ export default function HomeCourtBooking({ courts }: { courts: CourtPreview[] })
       <div className="section-head">
         <h3>Our Courts</h3>
       </div>
-      <div className="scroll-x" ref={stripRef}>
+      {/* Courts fill the row: 1 court = full width, up to 4 across; beyond that
+          the row scrolls, still showing 4 at a time. */}
+      <div
+        className="scroll-x court-slider"
+        ref={stripRef}
+        style={{ "--court-cols": Math.min(courts.length, 4) } as React.CSSProperties}
+      >
         {courts.map((c) => (
           <div
             key={c.id}

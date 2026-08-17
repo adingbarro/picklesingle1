@@ -73,6 +73,21 @@ export function isOpenNow(opensAt: string, closesAt: string): boolean {
   return now >= timeToMinutes(opensAt) && now < timeToMinutes(closesAt);
 }
 
+/**
+ * Shift a YYYY-MM-DD key by whole days. Uses UTC internally so the result never
+ * drifts with the viewer's own timezone.
+ */
+export function addDaysToDateKey(dateKey: string, days: number): string {
+  const d = new Date(`${dateKey}T00:00:00.000Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Weekday index (0 = Sunday) for a YYYY-MM-DD key, timezone-independent. */
+export function dateKeyWeekday(dateKey: string): number {
+  return new Date(`${dateKey}T00:00:00.000Z`).getUTCDay();
+}
+
 export function todayManilaDateKey(): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Manila",

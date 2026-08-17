@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { createManualBooking } from "@/app/admin/(protected)/manual-booking/actions";
-import { peso, timeLabel } from "@/lib/format";
+import { peso, timeLabel, todayManilaDateKey } from "@/lib/format";
 import { groupContiguousSlots } from "@/lib/slots";
 
 // Slots are picked one hour at a time; contiguous picks are merged into a
@@ -24,11 +24,7 @@ type CourtWithSlots = {
 };
 
 function todayDateKey(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = (d.getMonth() + 1).toString().padStart(2, "0");
-  const day = d.getDate().toString().padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  return todayManilaDateKey();
 }
 
 export default function ManualBookingManager() {

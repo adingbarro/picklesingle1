@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { todayManilaDateKey } from "@/lib/format";
 
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 const MONTH_NAMES = [
@@ -36,13 +37,17 @@ export default function CalendarDatePicker({
   /** When set, "fully booked" days reflect only this court instead of all courts. */
   courtId?: string;
 }) {
-  const today = new Date();
-  const todayKey = toDateKey(today.getFullYear(), today.getMonth() + 1, today.getDate());
+  // "Today" is the club's day in Manila, not the viewer's local day.
+  const todayKey = todayManilaDateKey();
+  const [todayYear, todayMonth] = todayKey.split("-").map(Number);
 
   const [selYear, selMonth] = selected.split("-").map(Number);
-  const [viewYear, setViewYear] = useState(selYear || today.getFullYear());
-  const [viewMonth, setViewMonth] = useState(selMonth || today.getMonth() + 1); // 1-12
-  const [fullyBooked, setFullyBooked] = useState<string[] | null>(null);
+  const [viewYear, setViewYear] = useState(selYear || todayYear);
+  const [viewMonth, setViewMonth] = useState(selMonth || todayMonth); // 1-12
+  const [dayStatus, setDayStatus] = useState<{ fullyBooked: string[]; partlyBooked: string[] }>({
+    fullyBooked: [],
+    partlyBooked: [],
+  });
 
   const requestKey = `${viewYear}-${viewMonth}-${courtId ?? "all"}`;
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
@@ -53,7 +58,7 @@ export default function CalendarDatePicker({
       .then((r) => r.json())
       .then((data) => {
         if (!cancelled) {
-          setFullyBooked(data.fullyBooked ?? []);
+          setDayStatus({ fullyBooked: data.fullyBooked ?? [], partlyBooked: data.partlyBooked ?? [] });
           setLoadedFor(requestKey);
         }
       });
@@ -63,7 +68,8 @@ export default function CalendarDatePicker({
   }, [viewYear, viewMonth, courtId, requestKey]);
 
   const loading = loadedFor !== requestKey;
-  const fullSet = new Set(fullyBooked ?? []);
+  const fullSet = new Set(dayStatus.fullyBooked);
+  const partlySet = new Set(dayStatus.partlyBooked);
 
   const firstDow = new Date(Date.UTC(viewYear, viewMonth - 1, 1)).getUTCDay();
   const daysInMonth = new Date(Date.UTC(viewYear, viewMonth, 0)).getUTCDate();
@@ -122,13 +128,18 @@ export default function CalendarDatePicker({
           const isPast = cell.key! < todayKey;
           const isToday = cell.key === todayKey;
           const isSelected = cell.key === selected;
-          const isFull = !loading && fullSet.has(cell.key!);
+          // Past days can't be booked, so they carry no availability state.
+          const showStatus = !loading && !isPast;
+          const isFull = showStatus && fullSet.has(cell.key!);
+          const isPartly = showStatus && partlySet.has(cell.key!);
 
           const classes = ["cal-day"];
           if (isPast) classes.push("past");
           if (isToday) classes.push("today");
           if (isSelected) classes.push("selected");
           if (isFull) classes.push("full");
+          else if (isPartly) classes.push("partly");
+          else if (showStatus) classes.push("free");
 
           return (
             <div
@@ -144,7 +155,15 @@ export default function CalendarDatePicker({
 
       <div className="calendar-legend">
         <span className="item">
-          <span className="dot" style={{ background: "var(--danger-bg)", border: "1px solid var(--danger)" }} />
+          <span className="dot free" />
+          Available
+        </span>
+        <span className="item">
+          <span className="dot partly" />
+          Partly booked
+        </span>
+        <span className="item">
+          <span className="dot full" />
           Fully booked
         </span>
       </div>

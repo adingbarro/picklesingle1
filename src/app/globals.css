@@ -14,6 +14,8 @@
   --slot-line: #91bdaf;
   --danger: #e2574c;
   --danger-bg: #fbdcd9;
+  --warn: #b06a05;
+  --warn-bg: #fceecd;
   --radius-lg: 22px;
   --radius-md: 16px;
   --radius-sm: 10px;
@@ -406,10 +408,15 @@ a {
 }
 
 /* ---------- Court slider (homepage) ---------- */
+.court-slider {
+  --court-cols: 4;
+  --court-gap: 10px;
+}
 .court-chip {
-  flex: 0 0 auto;
-  min-width: 104px;
-  padding: 11px 14px;
+  /* Share the visible row between up to 4 courts; extras scroll into view. */
+  flex: 0 0 calc((100% - (var(--court-cols) - 1) * var(--court-gap)) / var(--court-cols));
+  min-width: 0;
+  padding: 11px 8px;
   border-radius: 16px;
   text-align: center;
   background: #fff;
@@ -421,13 +428,15 @@ a {
   font-size: 14px;
   font-weight: 800;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .court-chip .cc-meta {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
   color: var(--ink-soft);
   margin-top: 3px;
-  white-space: nowrap;
+  line-height: 1.3;
 }
 .court-chip.active {
   background: var(--green-800);
@@ -543,9 +552,24 @@ a {
   border-color: var(--green-800);
   color: #fff;
 }
+/* Day availability: free = nothing booked, partly = some hours left, full = none. */
+.cal-day.free {
+  background: var(--green-100);
+  color: var(--green-800);
+}
+.cal-day.partly {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
 .cal-day.full {
   background: var(--danger-bg);
   color: var(--danger);
+}
+.cal-day.free.selected,
+.cal-day.partly.selected {
+  background: var(--green-800);
+  border-color: var(--green-800);
+  color: #fff;
 }
 .cal-day.full.selected {
   background: var(--danger);
@@ -575,6 +599,18 @@ a {
   width: 10px;
   height: 10px;
   border-radius: 3px;
+}
+.calendar-legend .dot.free {
+  background: var(--green-100);
+  border: 1px solid var(--green-600);
+}
+.calendar-legend .dot.partly {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn);
+}
+.calendar-legend .dot.full {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger);
 }
 
 /* ---------- Court list card ---------- */

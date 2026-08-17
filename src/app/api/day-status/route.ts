@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     where: { status: "ACTIVE", ...(courtId ? { id: courtId } : {}) },
   });
   if (activeCourts.length === 0) {
-    return NextResponse.json({ fullyBooked: [] });
+    return NextResponse.json({ fullyBooked: [], partlyBooked: [] });
   }
 
   const monthStart = new Date(Date.UTC(year, month - 1, 1));
@@ -33,19 +33,25 @@ export async function GET(req: NextRequest) {
 
   const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
   const fullyBooked: string[] = [];
+  // Days with at least one booking but still somewhere to play.
+  const partlyBooked: string[] = [];
 
   for (let day = 1; day <= daysInMonth; day++) {
     const dateKey = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     const dayBookings = bookings.filter((b) => b.date.toISOString().slice(0, 10) === dateKey);
 
-    const anyAvailable = activeCourts.some((c) => {
+    let anyAvailable = false;
+    let anyTaken = false;
+    for (const c of activeCourts) {
       const courtBookings = dayBookings.filter((b) => b.courtId === c.id);
       const slots = generateSlots(c.opensAt, c.closesAt, c.is24Hours, REFERENCE_DURATION, courtBookings);
-      return slots.some((s) => s.available);
-    });
+      if (slots.some((s) => s.available)) anyAvailable = true;
+      if (slots.some((s) => !s.available)) anyTaken = true;
+    }
 
     if (!anyAvailable) fullyBooked.push(dateKey);
+    else if (anyTaken) partlyBooked.push(dateKey);
   }
 
-  return NextResponse.json({ fullyBooked });
+  return NextResponse.json({ fullyBooked, partlyBooked });
 }

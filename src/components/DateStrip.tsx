@@ -1,13 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-
-function toDateKey(date: Date): string {
-  const y = date.getFullYear();
-  const m = (date.getMonth() + 1).toString().padStart(2, "0");
-  const d = date.getDate().toString().padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
+import { addDaysToDateKey, dateKeyWeekday, todayManilaDateKey } from "@/lib/format";
 
 const DOW = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
@@ -22,11 +16,10 @@ export default function DateStrip({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const today = new Date();
+  // Days run from the club's today (Manila), not the viewer's local today.
   const items = Array.from({ length: days }, (_, i) => {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    return { key: toDateKey(d), dow: DOW[d.getDay()], num: d.getDate() };
+    const key = addDaysToDateKey(todayManilaDateKey(), i);
+    return { key, dow: DOW[dateKeyWeekday(key)], num: Number(key.slice(8, 10)) };
   });
 
   useEffect(() => {
@@ -51,5 +44,5 @@ export default function DateStrip({
 }
 
 export function todayDateKey(): string {
-  return toDateKey(new Date());
+  return todayManilaDateKey();
 }
