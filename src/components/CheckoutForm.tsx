@@ -167,7 +167,7 @@ export default function CheckoutForm({
           <div className="t2">{peso(total)}</div>
         </div>
         <button className="pill-btn" onClick={handleBookNowClick} disabled={pending}>
-          {pending ? "Booking…" : "Book Now"}
+          {pending ? "Booking…" : "Request Booking"}
         </button>
       </div>
 

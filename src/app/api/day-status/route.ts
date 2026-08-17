@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateSlots } from "@/lib/slots";
+import { liveBookingWhere } from "@/lib/bookingStatus";
 
 // Reference duration used to decide whether a day still has any bookable slot.
 // 60 min is the shortest booking duration offered, so it's the most permissive check.
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest) {
   const monthStart = new Date(Date.UTC(year, month - 1, 1));
   const monthEnd = new Date(Date.UTC(year, month, 1));
   const bookings = await prisma.booking.findMany({
-    where: { date: { gte: monthStart, lt: monthEnd }, status: "CONFIRMED", ...(courtId ? { courtId } : {}) },
+    where: { date: { gte: monthStart, lt: monthEnd }, ...liveBookingWhere, ...(courtId ? { courtId } : {}) },
     select: { date: true, courtId: true, startTime: true, endTime: true },
   });
 

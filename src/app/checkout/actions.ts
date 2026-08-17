@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentCustomerEmail, getOrCreateCustomerByEmail } from "@/lib/customer";
 import { generateConfirmationCode } from "@/lib/format";
 import { generateSlots, groupContiguousSlots } from "@/lib/slots";
+import { liveBookingWhere, slotHoldKey } from "@/lib/bookingStatus";
 import {
   CUSTOMER_SESSION_COOKIE,
   CUSTOMER_SESSION_MAX_AGE,
@@ -69,11 +70,11 @@ export async function createBooking(input: {
 
   const date = new Date(`${input.date}T00:00:00.000Z`);
   const existingBookings = await prisma.booking.findMany({
-    where: { courtId: court.id, date, status: "CONFIRMED" },
+    where: { courtId: court.id, date, ...liveBookingWhere },
     select: { startTime: true, endTime: true },
   });
 
-  // Re-check availability server-side: the unique constraint only guards a
+  // Re-check availability server-side: the slot-hold constraint only guards a
   // booking's own start time, so a multi-hour block landing on top of an
   // existing booking's later hours would otherwise slip through.
   const bookable = new Set(
@@ -110,6 +111,10 @@ export async function createBooking(input: {
             courtPrice,
             serviceFee,
             totalPrice: courtPrice + serviceFee,
+            // Customer bookings wait for the admin to approve them; the slot is
+            // held (and unbookable by anyone else) in the meantime.
+            status: "PENDING",
+            slotHold: slotHoldKey(court.id, input.date, segment.start),
             confirmationCode: generateConfirmationCode(),
           },
         });
@@ -133,7 +138,8 @@ export async function cancelBooking(bookingId: string) {
 
   const customer = await getOrCreateCustomerByEmail(email);
   await prisma.booking.updateMany({
-    where: { id: bookingId, customerId: customer.id },
-    data: { status: "CANCELLED" },
+    where: { id: bookingId, customerId: customer.id, ...liveBookingWhere },
+    // Dropping the hold is what puts the hour back on sale.
+    data: { status: "CANCELLED", slotHold: null },
   });
 }

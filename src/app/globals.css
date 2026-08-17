@@ -292,6 +292,10 @@ a {
   background: var(--danger-bg);
   color: var(--danger);
 }
+.badge.amber {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
 
 /* ---------- Hero ---------- */
 .club-hero {
@@ -2033,6 +2037,106 @@ a {
 }
 
 /* ---------- Responsive ---------- */
+/* ---------- Bookings admin ---------- */
+.bk-page {
+  max-width: 1180px;
+}
+.bk-tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.bk-tabs .chip {
+  text-decoration: none;
+}
+.bk-error {
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  border-radius: var(--radius-md);
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.bk-table-wrap {
+  overflow-x: auto;
+}
+.bk-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.bk-table th {
+  text-align: left;
+  padding: 14px 16px;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.bk-table td {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-soft);
+  vertical-align: middle;
+}
+.bk-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.bk-table tr.past td {
+  opacity: 0.62;
+}
+.bk-table .strong {
+  font-weight: 700;
+  color: var(--ink);
+}
+.bk-table .soft {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+.bk-table th.right,
+.bk-table td.right {
+  text-align: right;
+}
+.bk-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.bk-actions .mini-btn {
+  flex: 0 0 auto;
+  padding: 7px 14px;
+}
+.mini-btn.approve {
+  color: var(--green-800);
+  border-color: var(--green-600);
+  background: var(--green-100);
+}
+.mini-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.nav-count {
+  margin-left: auto;
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 100px;
+  background: var(--warn-bg);
+  color: var(--warn);
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+}
+.nav-item.active .nav-count {
+  background: #fff;
+  color: var(--green-800);
+}
+
 @media (max-width: 900px) {
   .admin-shell {
     flex-direction: column;

@@ -39,6 +39,16 @@ const NAV = [
     ),
   },
   {
+    href: "/admin/bookings",
+    label: "Bookings",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M9 11l3 3 6-6" />
+        <path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9" />
+      </svg>
+    ),
+  },
+  {
     href: "/admin/manual-booking",
     label: "Manual Booking",
     icon: (
@@ -52,9 +62,12 @@ const NAV = [
 export default function AdminSidebar({
   companyName,
   logoDataUrl,
+  pendingBookings = 0,
 }: {
   companyName: string;
   logoDataUrl: string | null;
+  /** Badge on the Bookings item, so approvals don't sit unnoticed. */
+  pendingBookings?: number;
 }) {
   const pathname = usePathname();
   const initial = companyName.trim().charAt(0).toUpperCase() || "?";
@@ -79,6 +92,9 @@ export default function AdminSidebar({
           >
             {item.icon}
             {item.label}
+            {item.href === "/admin/bookings" && pendingBookings > 0 && (
+              <span className="nav-count">{pendingBookings}</span>
+            )}
           </Link>
         ))}
       </nav>

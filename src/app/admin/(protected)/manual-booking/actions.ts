@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { generateConfirmationCode } from "@/lib/format";
 import { generateSlots, groupContiguousSlots } from "@/lib/slots";
+import { liveBookingWhere, slotHoldKey } from "@/lib/bookingStatus";
 
 // Upper bound on one manual booking, across all courts picked.
 const MAX_SLOTS = 24;
@@ -45,8 +46,8 @@ export async function createManualBooking(input: {
     return { error: `${maintenance.name} is under maintenance and cannot be booked.` };
   }
 
-  // Availability has to be re-checked here: the unique constraint only guards a
-  // booking's own start time, so a multi-hour block overlapping an existing
+  // Availability has to be re-checked here: the slot-hold constraint only guards
+  // a booking's own start time, so a multi-hour block overlapping an existing
   // booking's later hours would otherwise go through.
   const rows: {
     courtId: string;
@@ -59,7 +60,7 @@ export async function createManualBooking(input: {
   for (const court of courts) {
     const starts = startsByCourt.get(court.id)!;
     const existingBookings = await prisma.booking.findMany({
-      where: { courtId: court.id, date, status: "CONFIRMED" },
+      where: { courtId: court.id, date, ...liveBookingWhere },
       select: { startTime: true, endTime: true },
     });
     const bookable = new Set(
@@ -106,6 +107,10 @@ export async function createManualBooking(input: {
             players,
             serviceFee: 0,
             totalPrice: row.courtPrice,
+            // The admin is the approver, so a booking they take themselves is
+            // confirmed on the spot — no pending step.
+            status: "CONFIRMED",
+            slotHold: slotHoldKey(row.courtId, input.date, row.startTime),
             confirmationCode: generateConfirmationCode(),
           },
         });
@@ -115,6 +120,7 @@ export async function createManualBooking(input: {
     });
 
     revalidatePath("/admin/manual-booking");
+    revalidatePath("/admin/bookings");
     revalidatePath("/bookings");
     return { success: true as const, confirmationCodes };
   } catch (err: unknown) {

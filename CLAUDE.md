@@ -39,11 +39,33 @@ only — they are not wired to anything and should not be edited to "fix" the ap
   - `/checkout` takes either `starts=07:00,08:00` (home page) or the legacy `start`+`duration`
     (court detail page), which it expands into the same hour list.
   - Both create paths re-check availability with `generateSlots()` before writing and write inside
-    a `prisma.$transaction`. Don't rely on `@@unique([courtId, date, startTime])` alone — it only
-    guards a booking's own start time, so a multi-hour block can otherwise overlap an existing
-    booking's later hours.
+    a `prisma.$transaction`. Don't rely on the `slotHold` unique index alone — it only guards a
+    booking's own start time, so a multi-hour block can otherwise overlap an existing booking's
+    later hours.
   - Slot styling is shared: available slots use the `--slot-line` border, taken slots render
     greyed and non-clickable rather than being hidden.
+- **Customer bookings are `PENDING` until an admin approves them, and a pending booking blocks its
+  hour exactly like a confirmed one.** `BookingStatus` is `PENDING | CONFIRMED | DECLINED |
+  CANCELLED`; the flow is:
+  - `/checkout` writes `PENDING` (so the customer-facing copy is "Request Booking" / "Booking
+    Request Sent"), while `/admin/manual-booking` writes `CONFIRMED` directly — the admin is the
+    approver, so their own bookings need no second step.
+  - `/admin/bookings` is the approval queue (`src/components/admin/BookingsManager.tsx`, actions in
+    `src/app/admin/(protected)/bookings/actions.ts`): approve/decline a pending booking, cancel a
+    confirmed one. `DECLINED`/`CANCELLED` are terminal — there's no un-decline, because the hour is
+    released the moment it's declined and someone else may have taken it. The admin sidebar carries
+    a pending count, fetched in `src/app/admin/(protected)/layout.tsx`.
+  - **Never filter availability on `status: "CONFIRMED"`.** Use `liveBookingWhere` /
+    `LIVE_BOOKING_STATUSES` from `src/lib/bookingStatus.ts` — that's the single definition of "this
+    booking still occupies the slot" (`PENDING` + `CONFIRMED`), used by all three `/api/*`
+    availability routes and both create paths.
+  - `Booking.slotHold` is the DB-level double-booking guard and replaces the old
+    `@@unique([courtId, date, startTime])`: it holds `"<courtId>|<YYYY-MM-DD>|<startTime>"` while
+    live and is set to `null` on decline/cancel. Postgres treats nulls as distinct, so the unique
+    index still rejects two live bookings of the same hour but *releases* the hour when the booking
+    dies — the old always-on unique left cancelled bookings squatting on their start time forever.
+    Anything that moves a booking out of a live status must null `slotHold` in the same update, and
+    anything that creates one must set it via `slotHoldKey()`.
 - **`Settings` also holds club links and contact config**, all optional and all edited on `/admin`
   (General Settings): `facebookUrl`, `mapsUrl` (linked from the home hero — icon and address),
   `whatsappNumber`, `telegramUsername`, `viberNumber` (quick-contact cards on `/contact`, hidden
@@ -130,6 +152,13 @@ into a state that a plain `migrate reset` doesn't fix. Workaround: hand-write th
 under `prisma/migrations/<timestamp>_<name>/migration.sql`, then apply it with
 `npx prisma migrate deploy` (deploy applies pending SQL files directly and never touches the
 shadow db). This is a local-dev-only wrinkle; it doesn't affect the Railway deploy story.
+
+**Adding a value to an existing Postgres enum needs a migration of its own.** Prisma runs each
+migration file in one transaction, and Postgres won't let a statement *use* an enum value that was
+added earlier in the same transaction (`unsafe use of new value ...`). That's why the booking
+statuses landed as two migrations: `..._booking_status_pending_declined` only runs the
+`ALTER TYPE ... ADD VALUE` lines, and `..._booking_slot_hold` is what sets
+`ALTER COLUMN "status" SET DEFAULT 'PENDING'`.
 
 Prisma's CLI refuses destructive commands (`migrate reset`, etc.) when it detects it's being
 run by an AI agent, until given `PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=<exact user

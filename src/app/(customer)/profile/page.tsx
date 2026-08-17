@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentCustomerEmail, getOrCreateCustomerByEmail } from "@/lib/customer";
 import { todayManilaDateKey } from "@/lib/format";
+import { LIVE_BOOKING_STATUSES } from "@/lib/bookingStatus";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +18,11 @@ export default async function ProfilePage() {
   const gamesPlayed = bookings.filter(
     (b) => b.status === "CONFIRMED" && b.date.toISOString().slice(0, 10) < today
   ).length;
+  // Pending counts as upcoming — the slot is already held for them.
   const upcoming = bookings.filter(
-    (b) => b.status === "CONFIRMED" && b.date.toISOString().slice(0, 10) >= today
+    (b) =>
+      (LIVE_BOOKING_STATUSES as readonly string[]).includes(b.status) &&
+      b.date.toISOString().slice(0, 10) >= today
   ).length;
 
   const initials = customer.name

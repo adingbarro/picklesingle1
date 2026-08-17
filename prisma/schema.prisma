@@ -21,7 +21,13 @@ enum CourtStatus {
 }
 
 enum BookingStatus {
+  // Customer booked it; the slot is held but the admin hasn't approved yet.
+  PENDING
+  // Admin approved it (or the admin created it directly from Manual Booking).
   CONFIRMED
+  // Admin rejected it — the slot is released and bookable again.
+  DECLINED
+  // Customer called it off — the slot is released too.
   CANCELLED
 }
 
@@ -95,11 +101,20 @@ model Booking {
   courtPrice       Int
   serviceFee       Int
   totalPrice       Int
-  status           BookingStatus @default(CONFIRMED)
+  status           BookingStatus @default(PENDING)
   confirmationCode String        @unique
   createdAt        DateTime      @default(now())
+  reviewedAt       DateTime?
+  // "<courtId>|<YYYY-MM-DD>|<startTime>" while this booking holds its slot, and
+  // null once it's declined/cancelled. Postgres treats nulls as distinct, so the
+  // unique index is a hard double-booking guard that releases when the slot does
+  // — a plain @@unique([courtId, date, startTime]) would keep dead bookings
+  // squatting on their start time forever. It only guards a block's *first*
+  // hour, so callers must still re-check with generateSlots().
+  slotHold         String?       @unique
 
-  @@unique([courtId, date, startTime])
   @@index([customerId])
   @@index([date])
+  @@index([courtId, date])
+  @@index([status])
 }

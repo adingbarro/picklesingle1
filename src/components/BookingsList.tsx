@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cancelBooking } from "@/app/checkout/actions";
 import { peso, timeLabel } from "@/lib/format";
+import { LIVE_BOOKING_STATUSES } from "@/lib/bookingStatus";
+import type { BookingStatus } from "@/generated/prisma/enums";
 
 export type BookingRow = {
   id: string;
@@ -16,11 +18,16 @@ export type BookingRow = {
   endTime: string;
   players: number;
   totalPrice: number;
-  status: "CONFIRMED" | "CANCELLED";
+  status: BookingStatus;
   isPast: boolean;
 };
 
 const TABS = ["Upcoming", "Past", "Cancelled"] as const;
+
+/** Pending and confirmed bookings are both real reservations to the customer. */
+function isLive(status: BookingStatus): boolean {
+  return (LIVE_BOOKING_STATUSES as readonly BookingStatus[]).includes(status);
+}
 
 export default function BookingsList({ bookings }: { bookings: BookingRow[] }) {
   const [tab, setTab] = useState<(typeof TABS)[number]>("Upcoming");
@@ -28,9 +35,10 @@ export default function BookingsList({ bookings }: { bookings: BookingRow[] }) {
   const router = useRouter();
 
   const filtered = bookings.filter((b) => {
-    if (tab === "Cancelled") return b.status === "CANCELLED";
-    if (tab === "Past") return b.status === "CONFIRMED" && b.isPast;
-    return b.status === "CONFIRMED" && !b.isPast;
+    // Declined requests sit alongside cancelled ones — the badge tells them apart.
+    if (tab === "Cancelled") return !isLive(b.status);
+    if (tab === "Past") return isLive(b.status) && b.isPast;
+    return isLive(b.status) && !b.isPast;
   });
 
   function handleCancel(id: string) {
@@ -69,7 +77,11 @@ export default function BookingsList({ bookings }: { bookings: BookingRow[] }) {
                 {b.courtName} · {b.courtType === "INDOOR" ? "Indoor" : "Outdoor"}
               </div>
               {b.status === "CANCELLED" ? (
-                <span className="badge red">Cancelled</span>
+                <span className="badge gray">Cancelled</span>
+              ) : b.status === "DECLINED" ? (
+                <span className="badge red">Declined</span>
+              ) : b.status === "PENDING" ? (
+                <span className="badge amber">Pending approval</span>
               ) : b.isPast ? (
                 <span className="badge gray">Completed</span>
               ) : (
@@ -79,7 +91,17 @@ export default function BookingsList({ bookings }: { bookings: BookingRow[] }) {
             <div className="meta">
               {timeLabel(b.startTime)} – {timeLabel(b.endTime)} · {b.players} players · {peso(b.totalPrice)}
             </div>
-            {b.status === "CONFIRMED" && !b.isPast && (
+            {b.status === "PENDING" && (
+              <div className="meta" style={{ color: "var(--warn)" }}>
+                Waiting for the club to approve — your slot is held in the meantime.
+              </div>
+            )}
+            {b.status === "DECLINED" && (
+              <div className="meta" style={{ color: "var(--danger)" }}>
+                The club couldn&rsquo;t take this one. Pick another time or message us.
+              </div>
+            )}
+            {isLive(b.status) && !b.isPast && (
               <div className="booking-actions">
                 <div className="mini-btn danger" onClick={() => !pending && handleCancel(b.id)}>
                   {pending ? "Cancelling…" : "Cancel"}

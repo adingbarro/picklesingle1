@@ -31,6 +31,7 @@ export default async function ConfirmationPage({ params, searchParams }: PagePro
       b.date.getTime() === booking.date.getTime()
   );
   const amountDue = group.reduce((sum, b) => sum + b.totalPrice, 0);
+  const isPending = booking.status === "PENDING";
 
   return (
     <div className="app-shell">
@@ -42,9 +43,11 @@ export default async function ConfirmationPage({ params, searchParams }: PagePro
             </svg>
           </div>
         </div>
-        <h1 style={{ fontSize: 21 }}>Booking Confirmed!</h1>
+        <h1 style={{ fontSize: 21 }}>{isPending ? "Booking Request Sent!" : "Booking Confirmed!"}</h1>
         <p className="subtitle" style={{ marginTop: 8 }}>
-          Your court is reserved. See you on the baseline 🏓
+          {isPending
+            ? "We're holding your slot while the club reviews it — you'll see it confirmed under My Bookings."
+            : "Your court is reserved. See you on the baseline 🏓"}
         </p>
 
         <div className="card ticket">
@@ -69,6 +72,12 @@ export default async function ConfirmationPage({ params, searchParams }: PagePro
           <div className="row">
             <span>Players</span>
             <span>{booking.players}</span>
+          </div>
+          <div className="row">
+            <span>Status</span>
+            <span className={`badge ${isPending ? "amber" : "lime"}`}>
+              {isPending ? "Pending approval" : "Confirmed"}
+            </span>
           </div>
           <hr />
           <div className="row">

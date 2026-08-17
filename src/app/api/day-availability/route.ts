@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateSlots } from "@/lib/slots";
+import { liveBookingWhere } from "@/lib/bookingStatus";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest) {
   const courts = await prisma.court.findMany({ orderBy: { sortOrder: "asc" } });
   const dayStart = new Date(`${date}T00:00:00.000Z`);
   const bookings = await prisma.booking.findMany({
-    where: { date: dayStart, status: "CONFIRMED" },
+    where: { date: dayStart, ...liveBookingWhere },
     select: { courtId: true, startTime: true, endTime: true },
   });
 
