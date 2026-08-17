@@ -96,6 +96,7 @@ Useful scripts: `npm run db:studio` opens Prisma Studio (a GUI to browse/edit th
 | `GOOGLE_CLIENT_ID`     | For Google sign-in | From an OAuth 2.0 Client ID at [Google Cloud Console](https://console.cloud.google.com/apis/credentials). |
 | `GOOGLE_CLIENT_SECRET` | For Google sign-in | Same OAuth client as above. Add `https://<your-railway-domain>/api/auth/callback/google` as an authorized redirect URI. |
 | `AUTH_SECRET`          | For Google sign-in | Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. |
+| `AUTH_URL`             | For Google sign-in | Your production URL, e.g. `https://your-domain.com`. Without it, Auth.js guesses the URL from the request, which behind Railway's proxy resolves to the container's internal address instead of your real domain and breaks the OAuth callback with `error=Configuration`. |
 
 ## What's still a placeholder
 
