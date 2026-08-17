@@ -150,6 +150,12 @@ export default async function HomePage() {
           </div>
         </>
       )}
+
+      <p className="privacy-notice">
+        We only use your info to run your account and bookings. See our{" "}
+        <Link href="/privacy">Privacy Policy</Link> and{" "}
+        <Link href="/terms">Terms of Service</Link>.
+      </p>
     </>
   );
 }

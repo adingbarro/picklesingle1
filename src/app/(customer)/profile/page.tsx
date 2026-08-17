@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentCustomerEmail, getOrCreateCustomerByEmail } from "@/lib/customer";
@@ -58,20 +59,45 @@ export default async function ProfilePage() {
         <MenuItem icon="💳" label="Payment Methods" />
         <MenuItem icon="🏓" label="Skill Level & DUPR" />
         <MenuItem icon="🔔" label="Notifications" />
-        <MenuItem icon="⚙️" label="Settings" last />
+        <MenuItem icon="⚙️" label="Settings" />
+        <MenuItem icon="🔒" label="Privacy Policy" href="/privacy" />
+        <MenuItem icon="📄" label="Terms of Service" href="/terms" last />
       </div>
     </>
   );
 }
 
-function MenuItem({ icon, label, last }: { icon: string; label: string; last?: boolean }) {
-  return (
-    <div className="menu-item" style={last ? { borderBottom: "none" } : undefined}>
+function MenuItem({
+  icon,
+  label,
+  href,
+  last,
+}: {
+  icon: string;
+  label: string;
+  href?: string;
+  last?: boolean;
+}) {
+  const content = (
+    <>
       <div className="ic">{icon}</div>
       <div className="label">{label}</div>
       <svg className="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M9 6l6 6-6 6" />
       </svg>
+    </>
+  );
+  const style = last ? { borderBottom: "none" } : undefined;
+  if (href) {
+    return (
+      <Link href={href} className="menu-item" style={style}>
+        {content}
+      </Link>
+    );
+  }
+  return (
+    <div className="menu-item" style={style}>
+      {content}
     </div>
   );
 }

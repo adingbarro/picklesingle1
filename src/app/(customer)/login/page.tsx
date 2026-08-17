@@ -57,6 +57,17 @@ export default function CustomerLoginPage() {
               Continue with Google
             </button>
           </form>
+          <p className="privacy-notice" style={{ padding: 0 }}>
+            By continuing, you agree to our{" "}
+            <a href="/terms" target="_blank" rel="noopener noreferrer">
+              Terms of Service
+            </a>{" "}
+            and{" "}
+            <a href="/privacy" target="_blank" rel="noopener noreferrer">
+              Privacy Policy
+            </a>
+            , including how we handle data from your Google account.
+          </p>
         </div>
       </div>
     </>
